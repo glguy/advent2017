@@ -10,7 +10,7 @@ type Vector = (Int,Int)
 main :: IO ()
 main =
   do n <- readIO =<< getInput 3
-     print (manhattanDist (coords !! (n - 2)))
+     print (part1 n)
      print (part2 n)
 
 
@@ -23,21 +23,26 @@ left  = (-1, 0)
 down  = ( 0,-1)
 up    = ( 0, 1)
 
+origin :: Coord
+origin = (0,0)
 
 -- | Compute L1 norm of a coordinate - manhattan distance
 manhattanDist :: Coord -> Int
 manhattanDist (x,y) = abs x + abs y
 
 
--- | Coordinates that come after the origin
-coords :: [(Int,Int)]
-coords = go (0,0) movements
-  where
-    movements = cycle directions `zip` (replicate 2 =<< [1..])
+-- | Add a vector to a coordinate
+move :: Vector -> Coord -> Coord
+move (dx,dy) (x,y) = (x+dx, y+dy)
 
-    go (x,y) (((dx, dy), n) : rest) = local ++ go (last local) rest
-      where
-        local = [ (i * dx + x, i * dy + y) | i <- [1..n] ]
+
+-- | Coordinates in the order visited starting with the origin
+coords :: [(Int,Int)]
+coords = scanl move origin movements
+  where
+    movements =
+      do (d,n) <- cycle directions `zip` (replicate 2 =<< [1..])
+         replicate n d
 
 
 -- | Returns the list of coordinates adjacent (including diagonally) to
@@ -50,14 +55,16 @@ neighborhood (x,y) = [ (x+dx, y+dy) | dx <- [-1 .. 1]
 
 -- | Find manhattan distance of nth visited coordinate using 1-based counting
 part1 :: Int -> Int
-part1 input = manhattanDist (((0,0) : coords) !! (input-1))
+part1 input = manhattanDist (coords !! (input-1))
 
 
 -- | Returns the first value written in part 2 of the problem that is larger
 -- than the given input value.
 part2 :: Int -> Int
-part2 input = go (Map.singleton (0,0) 1) coords
+part2 input = go (Map.singleton coord0 1) coords'
   where
+    coord0 : coords' = coords
+
     go m (c:cs)
       | here > input = here
       | otherwise    = go (Map.insert c here m) cs
