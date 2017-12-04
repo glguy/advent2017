@@ -1,6 +1,7 @@
 module Main where
 
 import Advent (getInput)
+import Data.List (mapAccumL)
 import Data.Maybe (mapMaybe)
 import qualified Data.Map as Map
 
@@ -45,28 +46,41 @@ coords = scanl move origin movements
          replicate n d
 
 
--- | Returns the list of coordinates adjacent (including diagonally) to
--- the given coordinate. Because it doesn't matter for this problem the
--- original coordinate is also included.
+-- | Returns the list of coordinates in the local 3x3 square around a
+-- given coordinate.
 neighborhood :: Coord -> [Coord]
 neighborhood (x,y) = [ (x+dx, y+dy) | dx <- [-1 .. 1]
                                     , dy <- [-1 .. 1] ]
 
 
 -- | Find manhattan distance of nth visited coordinate using 1-based counting
+--
+-- >>> part1 1
+-- 0
+-- >>> part1 12
+-- 3
+-- >>> part1 23
+-- 2
+-- >>> part1 1024
+-- 31
 part1 :: Int -> Int
 part1 input = manhattanDist (coords !! (input-1))
 
 
+-- | Infinite list of the writes done when populating the cells
+-- in spiral order by using the sum of the earlier populated
+-- neighbors.
+--
+-- >>> [1,1,2,4,5,10,11,23,25,26,54,57,59,122,133,142,147,304,330,351,362,747,806] `Data.List.isPrefixOf` part2writes
+-- True
+part2writes :: [Int]
+part2writes = snd (mapAccumL go (Map.singleton origin 1) coords)
+  where
+    go m c = (Map.insert c here m, here)
+      where
+        here = sum (mapMaybe (`Map.lookup` m) (neighborhood c))
+
 -- | Returns the first value written in part 2 of the problem that is larger
 -- than the given input value.
 part2 :: Int -> Int
-part2 input = go (Map.singleton coord0 1) coords'
-  where
-    coord0 : coords' = coords
-
-    go m (c:cs)
-      | here > input = here
-      | otherwise    = go (Map.insert c here m) cs
-      where
-        here = sum (mapMaybe (`Map.lookup` m) (neighborhood c))
+part2 input = head (dropWhile (<= input) part2writes)
