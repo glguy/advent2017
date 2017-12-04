@@ -18,3 +18,7 @@ getInput i =
        []    -> readFile (printf "inputs/input%02d.txt" i)
        "-":_ -> getContents
        fn:_  -> readFile fn
+
+-- | Count the number of elements in a list that satisfy a predicate.
+count :: (a -> Bool) -> [a] -> Int
+count f xs = length (filter f xs)
