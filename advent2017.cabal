@@ -44,6 +44,6 @@ executable Day04
 
 executable Day05
   main-is:             Day05.hs
-  build-depends:       advent2017, base, containers
+  build-depends:       advent2017, base, vector >=0.12 && <0.13
   hs-source-dirs:      execs
   default-language:    Haskell2010
