@@ -29,8 +29,8 @@ findLoop = go Map.empty
 -- | Given a vector representing the memory banks compute the new memory bank
 -- layout.
 step :: Vector Int -> Vector Int
-step xs = V.accum (+) (xs V.// [(i,0)]) [ (j,1) | j <- ixs ]
+step xs = V.accum (+) (xs V.// [(i,0)]) [ (j`mod`n, 1) | j <- [i+1 .. i+mx] ]
   where
     mx     = V.maximum xs
     Just i = V.elemIndex mx xs
-    ixs    = map (`mod` V.length xs) (take mx [i+1 ..])
+    n      = V.length xs
