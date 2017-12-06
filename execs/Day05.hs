@@ -11,6 +11,10 @@ main =
      print (solve part1 input)
      print (solve part2 input)
 
+-- | Parse input as lines of integers.
+--
+-- >>> parseInput "-2\n-1\n0\n1\n2\n"
+-- [-2,-1,0,1,2]
 parseInput :: String -> [Int]
 parseInput = map read . lines
 

@@ -6,9 +6,17 @@ import Data.List (sort, nub)
 
 main :: IO ()
 main =
-  do input <- map words . lines <$> getInput 4
+  do input <- parseInput <$> getInput 4
      print (count allUnique input)
      print (count allUniqueModuloAnagrams input)
+
+
+-- | Parse input as lines of words.
+--
+-- >>> parseInput "one two three\nfour five six\n"
+-- [["one","two","three"],["four","five","six"]]
+parseInput :: String -> [[String]]
+parseInput = map words . lines
 
 
 -- | Predicate that returns true when all elements in the list are unique

@@ -28,11 +28,21 @@ origin :: Coord
 origin = (0,0)
 
 -- | Compute L1 norm of a coordinate - manhattan distance
+--
+-- >>> manhattanDist (0,0)
+-- 0
+-- >>> manhattanDist (1,2)
+-- 3
+-- >>> manhattanDist (-1,3)
+-- 4
 manhattanDist :: Coord -> Int
 manhattanDist (x,y) = abs x + abs y
 
 
 -- | Add a vector to a coordinate
+--
+-- >>> move (10,20) (3,4)
+-- (13,24)
 move :: Vector -> Coord -> Coord
 move (dx,dy) (x,y) = (x+dx, y+dy)
 
@@ -48,6 +58,9 @@ coords = scanl move origin movements
 
 -- | Returns the list of coordinates in the local 3x3 square around a
 -- given coordinate.
+--
+-- >>> neighborhood (1,2)
+-- [(0,1),(0,2),(0,3),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
 neighborhood :: Coord -> [Coord]
 neighborhood (x,y) = [ (x+dx, y+dy) | dx <- [-1 .. 1]
                                     , dy <- [-1 .. 1] ]
