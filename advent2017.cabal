@@ -13,10 +13,11 @@ extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Advent
+  exposed-modules:     Advent,
+                       Advent.Fix
   build-depends:       base >=4.10 && <4.11,
                        containers >=0.5 && <0.6,
-                       megaparsec
+                       megaparsec >=6.2 && <6.3
   hs-source-dirs:      common
   default-language:    Haskell2010
 
