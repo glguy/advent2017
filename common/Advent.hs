@@ -33,3 +33,17 @@ getParsedInput i p =
 -- | Count the number of elements in a list that satisfy a predicate.
 count :: (a -> Bool) -> [a] -> Int
 count f xs = length (filter f xs)
+
+
+-- | Return true when the whole list is comprised of equal elements.
+--
+-- >>> same [1,1,1]
+-- True
+-- >>> same []
+-- True
+-- >>> same [1]
+-- True
+-- >>> same [1,1,2]
+-- False
+same :: Eq a => [a] -> Bool
+same xs = all (head xs ==) xs

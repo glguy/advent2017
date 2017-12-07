@@ -6,7 +6,10 @@ import Data.Foldable (for_)
 import System.IO     (hPutStr, stderr)
 
 main :: IO ()
-main = for_ [1..6] $ \i ->
-  do let str = printf "%02d" (i::Int)
-     hPutStr stderr (str ++ ": ")
-     doctest ["-icommon", "execs/Day" ++ str ++ ".hs"]
+main =
+  do hPutStr stderr "Advent: "
+     doctest ["-icommon", "Advent"]
+     for_ [1..7] $ \i ->
+       do let str = printf "%02d" (i::Int)
+          hPutStr stderr (str ++ ": ")
+          doctest ["-icommon", "execs/Day" ++ str ++ ".hs"]

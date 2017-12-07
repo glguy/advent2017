@@ -35,7 +35,7 @@ solve ::
   (Int -> Int) {- ^ update rule     -} ->
   [Int]        {- ^ initial program -} ->
   Int          {- ^ steps required  -}
-solve f xs = runST (loop 0 0 f =<< V.thaw (V.fromList xs))
+solve f xs = runST (loop 0 0 =<< V.thaw (V.fromList xs))
   where
     loop steps i mem
       | i < 0 || i >= M.length mem = pure $! steps

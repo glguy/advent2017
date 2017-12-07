@@ -6,11 +6,9 @@ import           Control.Applicative
 import           Data.List (delete)
 import           Data.Map (Map)
 import           Data.Set (Set)
-import           Text.Megaparsec
-import           Text.Megaparsec.Char
+import           Data.Char (isAlphaNum)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 data Node a = Node Int [a] deriving (Read, Show, Functor)
 
@@ -18,7 +16,7 @@ newtype Fix f = Fix (f (Fix f))
 
 main :: IO ()
 main =
-  do input <- Map.fromList <$> getParsedInput 7 inputParser
+  do input <- parseInput <$> getInput 7
      let top = topName input
      putStrLn top
      let g = buildGraph input top
@@ -26,16 +24,19 @@ main =
        Left answer -> print answer
        Right _     -> print "Failure?"
 
-inputParser :: Parser [(String, Node String)]
-inputParser = many $
-  do let nameParser = some letterChar
-     name   <- nameParser
-     weight <- string " (" *> Lexer.decimal <* string ")"
-     kids   <- option [] $
-               do string " -> "
-                  nameParser `sepBy1` string ", "
-     newline
-     return (name, Node weight kids)
+
+-- | Parse the input file as a map of entries, their weights and neighbors.
+parseInput :: String -> Map String (Node String)
+parseInput = Map.fromList . map parseLine . lines
+
+
+-- | Parse a single line of the input containing the name, weight, and neighors.
+parseLine :: String -> (String, Node String)
+parseLine str = (n, Node (read w) ns)
+  where
+    n : w : ns = words (filter isValid str)
+    isValid x = isAlphaNum x || x == ' '
+
 
 -- | Find the top-most name in the map of entries
 topName :: Map String (Node String) -> String
@@ -43,6 +44,7 @@ topName m = Set.findMin
           $ Set.difference
               (Map.keysSet m)
               (Set.fromList [x | Node _ xs <- Map.elems m, x <- xs])
+
 
 -- | Convert the map of entries into a linked up tree.
 buildGraph :: Map String (Node String) -> String -> Fix Node
@@ -60,12 +62,11 @@ solve (Fix (Node n xs)) =
 getWeight :: Fix Node -> Int
 getWeight (Fix (Node n _)) = n
 
--- | Return true when the whole list is comprised of equal elements.
-same :: Eq a => [a] -> Bool
-same xs = all (head xs ==) xs
-
 -- | Given a list of tree weights and top-most weights, computed the
 -- corrected weight.
+--
+-- >>> computeCorrection [(10, 5), (10, 6), (8, 11)]
+-- 13
 computeCorrection :: [(Int,Int)] -> Int
 computeCorrection xs = head $
   [ i + other - w
