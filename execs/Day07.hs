@@ -30,7 +30,7 @@ parseInput :: String -> Map String (Node String)
 parseInput = Map.fromList . map parseLine . lines
 
 
--- | Parse a single line of the input containing the name, weight, and neighors.
+-- | Parse a single line of the input containing the name, weight, and neighbors.
 parseLine :: String -> (String, Node String)
 parseLine str = (n, Node (read w) ns)
   where
@@ -62,7 +62,7 @@ solve (Fix (Node n xs)) =
 getWeight :: Fix Node -> Int
 getWeight (Fix (Node n _)) = n
 
--- | Given a list of tree weights and top-most weights, computed the
+-- | Given a list of tree weights and top-most weights, compute the
 -- corrected weight.
 --
 -- >>> computeCorrection [(10, 5), (10, 6), (8, 11)]
