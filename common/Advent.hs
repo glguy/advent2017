@@ -2,6 +2,8 @@ module Advent where
 
 import System.Environment
 import Text.Printf
+import Text.Megaparsec (parse, parseErrorTextPretty, Parsec)
+import Data.Void
 
 -- | Get the input for the given day.
 --
@@ -18,6 +20,15 @@ getInput i =
        []    -> readFile (printf "inputs/input%02d.txt" i)
        "-":_ -> getContents
        fn:_  -> readFile fn
+
+type Parser = Parsec Void String
+
+getParsedInput :: Int -> Parser a -> IO a
+getParsedInput i p =
+  do input <- getInput i
+     case parse p "input.txt" input of
+       Left e -> fail (parseErrorTextPretty e)
+       Right a -> return a
 
 -- | Count the number of elements in a list that satisfy a predicate.
 count :: (a -> Bool) -> [a] -> Int

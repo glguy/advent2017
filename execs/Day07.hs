@@ -1,12 +1,16 @@
 {-# Language DeriveFunctor #-}
 module Main where
 
-import Advent
+import           Advent
+import           Control.Applicative
+import           Data.List (delete)
+import           Data.Map (Map)
+import           Data.Set (Set)
+import           Text.Megaparsec
+import           Text.Megaparsec.Char
 import qualified Data.Map as Map
-import Data.Map (Map)
 import qualified Data.Set as Set
-import Data.Set (Set)
-import Data.List (delete)
+import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 data Node a = Node Int [a] deriving (Read, Show, Functor)
 
@@ -14,7 +18,7 @@ newtype Fix f = Fix (f (Fix f))
 
 main :: IO ()
 main =
-  do input <- Map.fromList . map parseOne . lines . filter (/= ',')<$> getInput 7
+  do input <- Map.fromList <$> getParsedInput 7 inputParser
      let top = topName input
      putStrLn top
      let g = buildGraph input top
@@ -22,13 +26,16 @@ main =
        Left answer -> print answer
        Right _     -> print "Failure?"
 
--- | Parse the line format
-parseOne :: String -> (String, Node String)
-parseOne xs =
-  let rd = read . init . tail in
-  case words xs of
-    [x,n] -> (x, Node (rd n) [])
-    x:n:"->":xs -> (x, Node (rd n) xs)
+inputParser :: Parser [(String, Node String)]
+inputParser = many $
+  do let nameParser = some letterChar
+     name   <- nameParser
+     weight <- string " (" *> Lexer.decimal <* string ")"
+     kids   <- option [] $
+               do string " -> "
+                  nameParser `sepBy1` string ", "
+     newline
+     return (name, Node weight kids)
 
 -- | Find the top-most name in the map of entries
 topName :: Map String (Node String) -> String
