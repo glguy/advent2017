@@ -12,6 +12,9 @@ main =
 
 
 -- | Parse the first line of the input as a list of digits
+--
+-- >>> parseInput "1234\n"
+-- [1,2,3,4]
 parseInput :: String -> [Int]
 parseInput = map digitToInt . head . lines
 

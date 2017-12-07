@@ -1,8 +1,8 @@
 module Main where
 
-import Advent
+import           Advent
 import qualified Data.Map as Map
-import Data.Vector.Unboxed (Vector)
+import           Data.Vector.Unboxed (Vector)
 import qualified Data.Vector.Unboxed as V
 
 main :: IO ()
@@ -51,7 +51,7 @@ findLoop = go Map.empty
 -- >>> step (V.fromList [3,1,2,3])
 -- [0,2,3,4]
 step :: Vector Int -> Vector Int
-step xs = V.accum (+) (xs V.// [(i,0)]) [ (j`mod`n, 1) | j <- [i+1 .. i+mx] ]
+step xs = V.accum (+) xs ((i, -mx) : [ (j`rem`n, 1) | j <- [i+1 .. i+mx]])
   where
     mx     = V.maximum xs
     Just i = V.elemIndex mx xs

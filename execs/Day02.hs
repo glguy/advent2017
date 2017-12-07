@@ -10,6 +10,9 @@ main =
      print (sum (map checksum2 xs))
 
 -- | Input format is lines of tab-separated integers.
+--
+-- >>> parseInput "1\t2\n3\t4\n"
+-- [[1,2],[3,4]]
 parseInput :: String -> [[Int]]
 parseInput = map (map read . words) . lines
 
