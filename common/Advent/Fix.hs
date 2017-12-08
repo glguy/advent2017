@@ -1,7 +1,7 @@
 module Advent.Fix where
 
 -- | Fixed-point of a type
-newtype Fix f = Fix (f (Fix f))
+newtype Fix f = Fix { unFix :: f (Fix f) }
 
 -- | Generic fold
 cata :: Functor t => (t a -> a) -> Fix t -> a

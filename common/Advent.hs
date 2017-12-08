@@ -4,6 +4,7 @@ import System.Environment
 import Text.Printf
 import Text.Megaparsec (parse, parseErrorTextPretty, Parsec)
 import Data.Void
+import Data.List
 
 -- | Get the input for the given day.
 --
@@ -47,3 +48,15 @@ count f xs = length (filter f xs)
 -- False
 same :: Eq a => [a] -> Bool
 same xs = all (head xs ==) xs
+
+-- | Returns a list of ways to select an element from a list without
+-- replacement.
+--
+-- >>> pickOne []
+-- []
+-- >>> pickOne [1]
+-- [(1,[])]
+-- >>> pickOne [1,2,3]
+-- [(1,[2,3]),(2,[1,3]),(3,[1,2])]
+pickOne :: [a] -> [(a, [a])]
+pickOne xs = [ (x, l++r) | (l,x:r) <- zip (inits xs) (tails xs) ]

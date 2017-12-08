@@ -23,20 +23,20 @@ interpret ::
   [String]       {- command            -} ->
   Map String Int {- outgoing registers -}
 interpret regs [r1,op1,n1,_,r2,op2,n2]
-  | tester op2 (view (register r2) regs) (read n2) =
-       over (register r1) (actor op1 (read n1)) regs
+  | toCompare op2 (view (register r2) regs) (read n2) =
+       over (register r1) (toArith op1 (read n1)) regs
   | otherwise = regs
 
 -- | Convert the string representation of a comparison to a function.
-tester :: String -> Int -> Int -> Bool
-tester "<"  = (< )
-tester ">"  = (> )
-tester ">=" = (>=)
-tester "<=" = (<=)
-tester "!=" = (/=)
-tester "==" = (==)
+toCompare :: String -> Int -> Int -> Bool
+toCompare "<"  = (< )
+toCompare ">"  = (> )
+toCompare ">=" = (>=)
+toCompare "<=" = (<=)
+toCompare "!=" = (/=)
+toCompare "==" = (==)
 
 -- | Convert the string representation of an arithmetic operation to a function.
-actor :: String -> Int -> Int -> Int
-actor "inc" = (+)
-actor "dec" = subtract
+toArith :: String -> Int -> Int -> Int
+toArith "inc" = (+)
+toArith "dec" = subtract
