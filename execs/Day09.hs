@@ -1,20 +1,29 @@
+{-|
+Module      : Main
+Description : Day 9 solution
+Copyright   : (c) Eric Mertens, 2017
+License     : ISC
+Maintainer  : emertens@gmail.com
+
+Day 9 poses a problem of parsing a nested bracket structure.
+
+-}
 module Main where
 
-import Advent (Parser, getParsedInput)
-import Control.Applicative (many, (<|>))
-import Text.Megaparsec (between, sepBy)
+import Advent               (Parser, getParsedInput)
+import Control.Applicative  (many, (<|>))
+import Data.Foldable        (traverse_)
+import Linear               (V2(V2))
+import Text.Megaparsec      (between, sepBy, label)
 import Text.Megaparsec.Char (char, anyChar, notChar)
-import Linear (V2(V2))
-import Data.Foldable (traverse_)
 
 -- $setup
 -- >>> import Text.Megaparsec (parseMaybe)
 
+-- | Print solution for Day 9. Puzzle input can be overriden by command-line
+-- argument.
 main :: IO ()
 main = traverse_ print =<< getParsedInput 9 (parseGroup 1)
-
--- | Vector of: group score, garbage count
-type Scores = V2 Int
 
 -- | Parse the group string format as defined in Day 9. Parse
 -- result is a vector containing the group score and garbage
@@ -36,11 +45,14 @@ type Scores = V2 Int
 -- Just (V2 9 0)
 -- >>> parseMaybe (parseGroup 1) "{{<a!>},{<a!>},{<a!>},{<ab>}}"
 -- Just (V2 3 17)
-parseGroup :: Int -> Parser Scores
+parseGroup ::
+  Int             {- ^ group depth                -} ->
+  Parser (V2 Int) {- ^ group score, garbage count -}
 parseGroup n =
+  label "group" $
   foldl (+) (V2 n 0) <$>
   between (char '{') (char '}')
-    ((parseGroup (n+1)  <|>  V2 0 <$> parseGarbage) `sepBy` char ',')
+    (sepBy (parseGroup (n+1)  <|>  V2 0 <$> parseGarbage) (char ','))
 
 -- | Parse a angle-bracket bracketed region of characters and return the
 -- number of non-ignored, contained characters. Characters including and
@@ -60,8 +72,9 @@ parseGroup n =
 -- Just 0
 -- >>> parseMaybe parseGarbage "<{o\"i!a,<{i<a>"
 -- Just 10
-parseGarbage :: Parser Int
+parseGarbage :: Parser Int {- ^ garbage count -}
 parseGarbage =
+  label "garbage" $
   sum <$>
   between (char '<') (char '>')
     (many (0 <$ char '!' <* anyChar  <|>  1 <$ notChar '>'))
