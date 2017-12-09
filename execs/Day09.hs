@@ -1,11 +1,14 @@
 module Main where
 
-import Advent
-import Control.Applicative
-import Text.Megaparsec
-import Text.Megaparsec.Char
-import Linear
-import Data.Foldable
+import Advent (Parser, getParsedInput)
+import Control.Applicative (many, (<|>))
+import Text.Megaparsec (between, sepBy)
+import Text.Megaparsec.Char (char, anyChar, notChar)
+import Linear (V2(V2))
+import Data.Foldable (traverse_)
+
+-- $setup
+-- >>> import Text.Megaparsec (parseMaybe)
 
 main :: IO ()
 main = traverse_ print =<< getParsedInput 9 (parseGroup 1)
@@ -34,16 +37,31 @@ type Scores = V2 Int
 -- >>> parseMaybe (parseGroup 1) "{{<a!>},{<a!>},{<a!>},{<ab>}}"
 -- Just (V2 3 17)
 parseGroup :: Int -> Parser Scores
-parseGroup n
-  = between (char '{') (char '}')
-  $ sum . (V2 n 0 :)
-  <$> sepBy (parseGroup (n+1) <|> parseIgnore <|> parseGarbage)
-            (char ',')
+parseGroup n =
+  foldl (+) (V2 n 0) <$>
+  between (char '{') (char '}')
+    ((parseGroup (n+1)  <|>  V2 0 <$> parseGarbage) `sepBy` char ',')
 
-parseIgnore :: Parser Scores
-parseIgnore = 0 <$ char '!' <* anyChar
-
-parseGarbage :: Parser Scores
-parseGarbage
-  = between (char '<') (char '>')
-  $ sum <$> many (parseIgnore <|> V2 0 1 <$ notChar '>')
+-- | Parse a angle-bracket bracketed region of characters and return the
+-- number of non-ignored, contained characters. Characters including and
+-- following a @!@ are ignored inside garbgae.
+--
+-- >>> parseMaybe parseGarbage "<>"
+-- Just 0
+-- >>> parseMaybe parseGarbage "<random characters>"
+-- Just 17
+-- >>> parseMaybe parseGarbage "<<<<>"
+-- Just 3
+-- >>> parseMaybe parseGarbage "<{!>}>"
+-- Just 2
+-- >>> parseMaybe parseGarbage "<!!>"
+-- Just 0
+-- >>> parseMaybe parseGarbage "<!!!>>"
+-- Just 0
+-- >>> parseMaybe parseGarbage "<{o\"i!a,<{i<a>"
+-- Just 10
+parseGarbage :: Parser Int
+parseGarbage =
+  sum <$>
+  between (char '<') (char '>')
+    (many (0 <$ char '!' <* anyChar  <|>  1 <$ notChar '>'))
