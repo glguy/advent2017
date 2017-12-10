@@ -5,17 +5,18 @@ Copyright   : (c) Eric Mertens, 2017
 License     : ISC
 Maintainer  : emertens@gmail.com
 
-Day 9 poses a convoluted knot-tying algorithm to implement.
+Day 10 poses a convoluted knot-tying algorithm to implement.
 
 -}
 module Main where
 
 import Advent           (getInput)
-import Control.Monad    (zipWithM_)
+import Control.Monad    ((<=<), zipWithM_)
 import Control.Monad.ST (ST, runST)
 import Data.Bits        (xor)
 import Data.Char        (ord)
 import Data.Foldable    (for_)
+import Data.List        (foldl1')
 import Data.List.Split  (chunksOf, splitOn)
 import Text.Printf      (printf)
 import qualified Data.Vector.Unboxed as V
@@ -58,8 +59,11 @@ part2 sz = hash . tieKnots sz . concat . replicate 64 . part2Input
 
 -- | Compute the "dense hash" of a of a rope. Rope length should
 -- be a multiple of 16.
+--
+-- >>> hash [65, 27, 9, 1, 4, 3, 40, 50, 91, 7, 6, 0, 2, 5, 68, 22]
+-- "40"
 hash :: [Int] {- ^ rope -} -> String
-hash = concatMap (printf "%02x" . foldl1 xor) . chunksOf 16
+hash = printf "%02x" . foldl1' xor <=< chunksOf 16
 
 -- | Transform the input string according to the part 1 rule to
 -- produce the list of knot lengths required.
@@ -83,6 +87,9 @@ part2Input str = map ord str ++ [17, 31, 73, 47, 23]
 
 -- | Create a rope, tie knots of the given lengths while skipping
 -- according to the increasing skip rule.
+--
+-- >>> tieKnots 5 [3, 4, 1, 5]
+-- [3,4,2,1,0]
 tieKnots ::
   Int   {- ^ rope size      -} ->
   [Int] {- ^ knot lengths   -} ->
