@@ -79,8 +79,7 @@ part1Input = map read . splitOn ","
 part2Input ::
   String {- ^ input string -} ->
   [Int]  {- ^ rope lengths -}
-part2Input = (++ extras) . map ord
-  where extras = [17, 31, 73, 47, 23]
+part2Input str = map ord str ++ [17, 31, 73, 47, 23]
 
 -- | Create a rope, tie knots of the given lengths while skipping
 -- according to the increasing skip rule.
