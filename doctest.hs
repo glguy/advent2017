@@ -9,7 +9,7 @@ main :: IO ()
 main =
   do hPutStr stderr "Advent: "
      doctest ["-icommon", "Advent"]
-     for_ [1..10] $ \i ->
+     for_ [1..11] $ \i ->
        do let str = printf "%02d" (i::Int)
           hPutStr stderr (str ++ ": ")
           doctest ["-icommon", "execs/Day" ++ str ++ ".hs"]
