@@ -2,7 +2,8 @@ module Advent where
 
 import System.Environment
 import Text.Printf
-import Text.Megaparsec (parse, parseErrorTextPretty, Parsec)
+import Text.Megaparsec (many, parse, parseErrorTextPretty, Parsec, eof)
+import Text.Megaparsec.Char (newline)
 import Data.Void
 import Data.List
 
@@ -30,6 +31,9 @@ getParsedInput i p =
      case parse p "input.txt" input of
        Left e -> fail (parseErrorTextPretty e)
        Right a -> return a
+
+getParsedLines :: Int -> Parser a -> IO [a]
+getParsedLines i p = getParsedInput i (many (p <* newline) <* eof)
 
 -- | Count the number of elements in a list that satisfy a predicate.
 count :: (a -> Bool) -> [a] -> Int

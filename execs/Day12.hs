@@ -10,7 +10,7 @@ For fun we'll just use the @fgl@ package to do this.
 -}
 module Main where
 
-import Advent (Parser, getParsedInput)
+import Advent (Parser, getParsedLines)
 import Text.Megaparsec (many, sepBy)
 import Text.Megaparsec.Char (string, newline)
 import Text.Megaparsec.Char.Lexer (decimal)
@@ -18,7 +18,7 @@ import Data.Graph.Inductive (UGr, reachable, noComponents, mkUGraph)
 
 main :: IO ()
 main =
-  do input <- getParsedInput 12 parser
+  do input <- getParsedLines 12 parser
      let g = toGraph input
      print (length (reachable 0 g))
      print (noComponents g)
@@ -29,9 +29,5 @@ toGraph :: [(Int,[Int])] -> UGr
 toGraph xs = mkUGraph (fst <$> xs) (sequenceA =<< xs)
 
 -- | Parses lines of the format @node <-> node, node, node@.
-parser :: Parser [(Int,[Int])]
-parser = many $ do x <- decimal
-                   string " <-> "
-                   xs <- sepBy decimal (string ", ")
-                   newline
-                   return (x,xs)
+parser :: Parser (Int,[Int])
+parser = (,) <$> decimal <* string " <-> " <*> decimal `sepBy` string ", "
