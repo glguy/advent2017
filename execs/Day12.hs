@@ -14,14 +14,14 @@ import Advent (Parser, getParsedInput)
 import Text.Megaparsec (many, sepBy)
 import Text.Megaparsec.Char (string, newline)
 import Text.Megaparsec.Char.Lexer (decimal)
-import Data.Graph.Inductive (UGr, dfs, components, mkUGraph)
+import Data.Graph.Inductive (UGr, reachable, noComponents, mkUGraph)
 
 main :: IO ()
 main =
   do input <- getParsedInput 12 parser
      let g = toGraph input
-     print (length (dfs [0] g))
-     print (length (components g))
+     print (length (reachable 0 g))
+     print (noComponents g)
 
 -- | Convert a list of nodes and the node's neighbors into an
 -- unlabeled graph.
