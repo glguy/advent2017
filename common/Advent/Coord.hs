@@ -1,3 +1,11 @@
+{-|
+Module      : Advent.Coord
+Description : Cartesian coordinates data and operations
+Copyright   : (c) Eric Mertens, 2017
+License     : ISC
+Maintainer  : emertens@gmail.com
+
+-}
 module Advent.Coord where
 
 -- | Coordinate with x and y component
