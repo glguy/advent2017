@@ -12,6 +12,7 @@ we can combine our previous results to make something new.
 module Main where
 
 import           Advent
+import           Advent.Coord
 import           Control.Monad
 import           Control.Monad.ST (ST, runST)
 import qualified Data.Vector as V
@@ -25,6 +26,7 @@ import           Data.Foldable
 import           Data.Graph.Inductive
 import           Data.List
 import           Data.List.Split
+import           Data.Word
 
 -- | Compute the solution to Day 14. Input can be overriden via the
 -- command-line.
@@ -40,12 +42,12 @@ main =
 
 -- | Convert the set of coordinates into a graph labeled with those
 -- coordinates where adjacent elements have edges between them.
-coordsToGraph :: Set (Int,Int) -> Gr (Int,Int) ()
+coordsToGraph :: Set Coord -> Gr Coord ()
 coordsToGraph coords = run_ empty $
   do insMapNodesM (Set.toList coords)
      insMapEdgesM [ (src,dst,())
                     | src <- Set.toList coords
-                    , dst <- adjacent src
+                    , dst <- adjacentNeighborhood src
                     , Set.member dst coords ]
 
 -- | Build the problem grid as a list of rows where a cell is set in
@@ -54,15 +56,12 @@ buildGrid :: String -> V.Vector Integer
 buildGrid str = V.generate 128 $ \i -> knotHash $ str ++ "-" ++ show i
 
 -- | Convert a grid into a list of coordinates that are set.
-gridToCoords :: V.Vector Integer -> Set (Int,Int)
+gridToCoords :: V.Vector Integer -> Set Coord
 gridToCoords grid = Set.fromList
-  [ (r,c) | (r,row) <- zip [0..] (V.toList grid)
+  [ C r c | (r,row) <- zip [0..] (V.toList grid)
           , c       <- [0..127]
           , testBit row c]
 
--- | Compute the neighbors of a coordinate.
-adjacent :: (Int,Int) -> [(Int,Int)]
-adjacent (x,y) = [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]
 
 -- Stuff ripped out of day 10 --
 
@@ -71,26 +70,30 @@ knotHash ::
   String  {- ^ input string -} ->
   Integer {- ^ knot value   -}
 knotHash =
-   foldl' (\acc x -> acc * 256 + fromIntegral (foldl1' xor x)) 0 .
+   bytesToInteger . map (foldl1' xor) .
    chunksOf 16 . tieKnots . concat . replicate 64 .
    (++ [17, 31, 73, 47, 23]) .  map ord
+
+-- | Convert list of bytes into integer in big-endian order.
+bytesToInteger :: [Word8] -> Integer
+bytesToInteger = foldl' (\acc x -> acc * 0x100 + fromIntegral x) 0
 
 -- | Create a rope, tie knots of the given lengths while skipping
 -- according to the increasing skip rule.
 tieKnots ::
-  [Int] {- ^ knot lengths   -} ->
-  [Int] {- ^ resulting rope -}
+  [Int]   {- ^ knot lengths   -} ->
+  [Word8] {- ^ resulting rope -}
 tieKnots lengths = runST $
-  do v <- VU.thaw (VU.generate 256 id)
+  do v <- VU.thaw (VU.generate 256 fromIntegral)
      let cursors = scanl (+) 0 (zipWith (+) [0 ..] lengths)
      zipWithM_ (tieKnot v) lengths cursors
      VU.toList <$> VU.unsafeFreeze v
 
 -- | Reverse the length of elements starting at the given cursor.
 tieKnot ::
-  M.MVector s Int {- ^ rope vector     -} ->
-  Int             {- ^ knot length     -} ->
-  Int             {- ^ cursor position -} ->
+  M.MVector s Word8 {- ^ rope vector     -} ->
+  Int               {- ^ knot length     -} ->
+  Int               {- ^ cursor position -} ->
   ST s ()
 tieKnot v len cur =
   do let wrap x = x `mod` M.length v
