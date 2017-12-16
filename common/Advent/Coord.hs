@@ -39,7 +39,7 @@ manhattanDist (C x y) = abs x + abs y
 
 -- | Add a vector to a coordinate
 --
--- >>> move (C 10 20) (V 3 4)
+-- >>> move (C 10 20) (D 3 4)
 -- C 13 24
 move :: Coord -> Delta -> Coord
 move (C x y) (D dx dy) = C (x+dx) (y+dy)
@@ -48,7 +48,7 @@ move (C x y) (D dx dy) = C (x+dx) (y+dy)
 -- | Returns the list of coordinates in the local 3x3 square around a
 -- given coordinate.
 --
--- >>> neighborhood (C 1 2)
+-- >>> squareNeighborhood 1 (C 1 2)
 -- [C 0 1,C 0 2,C 0 3,C 1 1,C 1 2,C 1 3,C 2 1,C 2 2,C 2 3]
 squareNeighborhood ::
   Int   {- ^ distance -} ->
