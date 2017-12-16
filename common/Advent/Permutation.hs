@@ -14,6 +14,9 @@ module Advent.Permutation
   , rotateRight
   , rotateLeft
   , invert
+  , isValid
+  , size
+  , backwards
   ) where
 
 import Data.List
@@ -36,6 +39,15 @@ runPermutation f (P v) = f <$> V.toList v
 size :: Permutation n -> Int
 size (P v) = V.length v
 
+-- | Validate a permutation. A valid permutation will map each element in the input
+-- to a unique element in the output.
+isValid :: Permutation n -> Bool
+isValid (P p) = V.and (V.accumulate_ (\_ new -> new) (V.replicate n False) p (V.replicate n True))
+  where
+    n = V.length p
+
+-- | Helper function for making the size of a requested permutation available
+-- while building the permutation.
 withSize :: KnownNat n => (Int -> Permutation n) -> Permutation n
 withSize f = fix (f . fromIntegral . natVal)
 
@@ -71,7 +83,7 @@ invert (P v) = P (V.accumulate_ (\_ new -> new) initial v iota)
 backwards :: KnownNat n => Permutation n
 backwards = mkPermutation $ \i -> -i-1
 
-instance KnownNat n => Semigroup (Permutation n) where
+instance Semigroup (Permutation n) where
   P x <> P y        = P (V.backpermute x y)
   sconcat (x :| xs) = foldl' (<>) x xs
 
