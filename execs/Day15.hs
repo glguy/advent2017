@@ -35,8 +35,8 @@ match x y = x .&. 0xffff == y .&. 0xffff
 
 -- | Step functions for the generators.
 nextA, nextB  :: Int -> Int
-nextA x = x * 16807 `rem` 2147483647
-nextB x = x * 48271 `rem` 2147483647
+nextA x = x * 16807 `rem` 0x7fffffff
+nextB x = x * 48271 `rem` 0x7fffffff
 
 -- | Returns true if the divisor evenly divides the dividend.
 --
