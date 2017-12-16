@@ -8,6 +8,9 @@ import Data.Proxy
 
 data Permutation (n :: Nat) = P (V.Vector Int) deriving Show
 
+runPermutation :: (Int -> a) -> Permutation n -> [a]
+runPermutation f (P v) = f <$> V.toList v
+
 mkPermutation :: forall n. KnownNat n => (Int -> Int) -> Permutation n
 mkPermutation f = P (V.generate n (\i -> f i `mod` n))
   where n = fromIntegral (natVal (Proxy :: Proxy n))
