@@ -25,7 +25,7 @@ module Main where
 
 import Advent                     (Parser, getParsedInput)
 import Advent.Permutation         (Permutation, rotateRight, runPermutation, swap)
-import Data.Semigroup             (Semigroup, (<>), stimes)
+import Data.Semigroup             (Semigroup, (<>), sconcat, stimes)
 import Data.Char                  (chr, ord)
 import GHC.TypeLits               (KnownNat)
 import Text.Megaparsec            (choice, eof, sepBy)
@@ -109,7 +109,7 @@ partDance :: KnownNat n => Char -> Char -> Dance n
 partDance x y = Dance (swap (letterToInt x) (letterToInt y)) mempty
 
 -- | A dance is a renaming of dancers and a permutation of their positions
-data Dance n = Dance (Permutation n) (Permutation n) -- ^ renaming, permutation
+data Dance n = Dance !(Permutation n) !(Permutation n) -- ^ renaming, permutation
 
 -- | Sequences first and then second dance
 instance KnownNat n => Semigroup (Dance n) where
