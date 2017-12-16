@@ -32,6 +32,9 @@ import Text.Megaparsec            (choice, eof, sepBy)
 import Text.Megaparsec.Char       (anyChar, char, newline)
 import Text.Megaparsec.Char.Lexer (decimal)
 
+-- $setup
+-- >>> :set -XDataKinds
+
 -- | Print the solutions to both parts of the day 16 problem. The input
 -- file can be overridden via command-line arguments.
 main :: IO ()
@@ -68,7 +71,6 @@ letterToInt c = ord c - ord 'a'
 -- | Compute the final position of the dancers given a dance where
 -- dancers start in order.
 --
--- >>> :set -XDataKinds
 -- >>> let example = spinDance 1 <> swapDance 3 4 <> partDance 'e' 'b' :: Dance 5
 -- >>> runDance example
 -- "baedc"
@@ -80,7 +82,6 @@ runDance (Dance r p) = runPermutation intToLetter (r <> p)
 -- | The spin dance where all dancers move some number of positions
 -- to the right.
 --
--- >>> :set -XDataKinds
 -- >>> runDance (spinDance 0 :: Dance 3)
 -- "abc"
 -- >>> runDance (spinDance 1 :: Dance 3)
@@ -90,7 +91,6 @@ spinDance n = Dance mempty (rotateRight n)
 
 -- | The swap dance where dancers in the two positions trade places.
 --
--- >>> :set -XDataKinds
 -- >>> runDance (swapDance 0 1 :: Dance 3)
 -- "bac"
 -- >>> runDance (swapDance 0 1 <> swapDance 1 2 :: Dance 3)
@@ -100,7 +100,6 @@ swapDance x y = Dance mempty (swap x y)
 
 -- | The parter dance where the two named dancers changes positions.
 --
--- >>> :set -XDataKinds
 -- >>> runDance (partDance 'a' 'b' :: Dance 3)
 -- "bac"
 -- >>> runDance (partDance 'a' 'b' <> partDance 'a' 'c' :: Dance 3)
