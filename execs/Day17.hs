@@ -6,6 +6,18 @@ Copyright   : (c) Eric Mertens, 2017
 License     : ISC
 Maintainer  : emertens@gmail.com
 
+Day 17 has us repeatedly insert elements into a circular buffer and
+asks about the elements following some needle.
+
+Part 1 is small enough that we can generate the whole list quickly
+and search it.
+
+Part 2 is large enough that generating the whole list and searching
+it uses roughly 5.2 GB of RAM and takes 1 minute 15 seconds on my
+hardware to run! We instead optimize things by noticing that the @0@
+element is always at the head of the sequence, so we simply need to
+find the last element that was written at index @1@.
+
 -}
 module Main where
 
@@ -51,15 +63,19 @@ makeSequence jump sz
 --
 -- >>> take 10 (cursors 3)
 -- [0,1,1,2,2,1,5,2,6,1]
-cursors :: Int -> [Int]
+cursors ::
+  Int   {- ^ jump size        -} ->
+  [Int] {- ^ cursor positions -}
 cursors jump = scanl nextCursor 0 [1..]
   where
-    nextCursor cursor sz = (cursor+jump)`rem`sz + 1
+    nextCursor cursor size = (cursor+jump)`rem`size + 1
 {-# Inline cursors #-} -- helps list fusion!
 
 -- | Special case for when we only need to know what number is going
 -- to follow the zero. Because the 0 is always going to be at the zero
 -- index, whatever the last element to be written to the 1 index must
 -- be the element that directly follows the zero.
-part2 :: Int -> Int
+part2 ::
+  Int {- ^ jump size             -} ->
+  Int {- ^ number following zero -}
 part2 jump = last (elemIndices 1 (take 5e7 (cursors jump)))
