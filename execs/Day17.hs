@@ -1,4 +1,4 @@
-{-# Language BangPatterns, NumDecimals #-}
+{-# Language NumDecimals #-}
 {-|
 Module      : Main
 Description : Day 17 solution
@@ -22,7 +22,7 @@ find the last element that was written at index @1@.
 module Main where
 
 import           Advent        (getInput)
-import           Data.List     (elemIndices, foldl')
+import           Data.List     (elemIndices, foldl', scanl')
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
@@ -66,7 +66,7 @@ makeSequence jump sz
 cursors ::
   Int   {- ^ jump size        -} ->
   [Int] {- ^ cursor positions -}
-cursors jump = scanl nextCursor 0 [1..]
+cursors jump = scanl' nextCursor 0 [1..]
   where
     nextCursor cursor size = (cursor+jump)`rem`size + 1
 {-# Inline cursors #-} -- helps list fusion!
