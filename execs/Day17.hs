@@ -10,6 +10,7 @@ Maintainer  : emertens@gmail.com
 module Main where
 
 import           Advent
+import           Data.List
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 
@@ -36,11 +37,6 @@ makeSequence jump sz = go (Seq.singleton 0) 0 1
 -- | Special case for when we only need to know what number is going
 -- to follow the zero.
 part2 :: Int -> Int
-part2 input = go 1 0 0
+part2 jump = last (elemIndices 1 (scanl nextCursor 0 [1..5e7]))
   where
-    go !i !cursor candidate
-      | i > 5e7     = candidate
-      | cursor == 0 = go (i+1) cursor' i
-      | otherwise   = go (i+1) cursor' candidate
-      where
-        cursor' = (cursor + input + 1) `rem` (i + 1)
+    nextCursor cursor sz = (cursor+jump)`rem`sz + 1

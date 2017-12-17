@@ -129,7 +129,7 @@ executable Day16
 
 executable Day17
   main-is:             Day17.hs
-  ghc-options:         -O2
+  ghc-options:         -O2 -fllvm
   build-depends:       advent2017, base, containers
   hs-source-dirs:      execs
   default-language:    Haskell2010
