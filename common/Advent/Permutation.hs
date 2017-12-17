@@ -5,6 +5,9 @@ Description : Composable permutations
 Copyright   : (c) Eric Mertens, 2017
 License     : ISC
 Maintainer  : emertens@gmail.com
+
+Common permutations of a finite collection of elements and
+operations on them.
 -}
 module Advent.Permutation
   ( Permutation
@@ -17,14 +20,20 @@ module Advent.Permutation
   , isValid
   , size
   , backwards
+  , cycles
+  , order
   ) where
 
-import Data.List
-import Data.List.NonEmpty (NonEmpty((:|)))
-import Data.Function (fix)
-import Data.Semigroup
-import GHC.TypeLits
+import           Data.List
+import           Data.List.NonEmpty (NonEmpty((:|)))
+import           Data.Function (fix)
+import qualified Data.IntSet as IntSet
+import           Data.Semigroup
+import           GHC.TypeLits
 import qualified Data.Vector.Unboxed as V
+
+-- $setup
+-- >>> :set -XDataKinds
 
 type role Permutation nominal
 
@@ -83,6 +92,33 @@ invert (P v) = P (V.accumulate_ (\_ new -> new) initial v iota)
 backwards :: KnownNat n => Permutation n
 backwards = mkPermutation $ \i -> -i-1
 
+-- | Compute the disjoint cycles of the permutation.
+--
+-- >>> cycles (swap 1 2 <> swap 3 4 <> swap 4 5 :: Permutation 6)
+-- [[0],[1,2],[3,4,5]]
+cycles :: Permutation n -> [[Int]]
+cycles (P v) = unfoldr aux initialSet
+  where
+    initialSet = IntSet.fromList [0 .. V.length v-1]
+
+    getOne start cur
+      | start == cur = []
+      | otherwise    = cur : getOne start (v V.! cur)
+
+    aux items =
+      do (seed, items') <- IntSet.minView items
+         let cycleElts = seed : getOne seed (v V.! seed)
+         return (cycleElts, foldl' (flip IntSet.delete) items' cycleElts)
+
+-- | Compute the order of a permutation.
+--
+-- >>> order (swap 1 2 <> swap 3 4 <> swap 4 5 :: Permutation 6)
+-- 6
+order :: Permutation n -> Int
+order = foldl' lcm 1 . map length . cycles
+
+-- | @a '<>' b@ is the permutation that first permutes with @a@ and
+-- then with @b@.
 instance Semigroup (Permutation n) where
   P x <> P y        = P (V.backpermute x y)
   sconcat (x :| xs) = foldl' (<>) x xs
