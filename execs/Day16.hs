@@ -1,4 +1,4 @@
-{-# Language DataKinds, NumDecimals, ScopedTypeVariables #-}
+{-# Language DataKinds, NumDecimals, ScopedTypeVariables, OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 16 solution
@@ -29,7 +29,7 @@ import Data.Semigroup             (Semigroup, (<>), sconcat, stimes)
 import Data.Char                  (chr, ord)
 import GHC.TypeLits               (KnownNat)
 import Text.Megaparsec            (choice, eof, sepBy)
-import Text.Megaparsec.Char       (anyChar, char, newline)
+import Text.Megaparsec.Char       (anyChar, newline)
 import Text.Megaparsec.Char.Lexer (decimal)
 
 -- $setup
@@ -45,14 +45,14 @@ main =
 
 -- | Parse an input string as a dance.
 parseDance :: KnownNat n => Parser (Dance n)
-parseDance = mconcat <$> sepBy parseDanceStep (char ',') <* newline <* eof
+parseDance = mconcat <$> sepBy parseDanceStep "," <* newline <* eof
 
 -- | Parse a single step in a dance.
 parseDanceStep :: KnownNat n => Parser (Dance n)
 parseDanceStep = choice
-  [ spinDance <$ char 's' <*> decimal
-  , swapDance <$ char 'x' <*> decimal <* char '/' <*> decimal
-  , partDance <$ char 'p' <*> anyChar <* char '/' <*> anyChar ]
+  [ spinDance <$ "s" <*> decimal
+  , swapDance <$ "x" <*> decimal <* "/" <*> decimal
+  , partDance <$ "p" <*> anyChar <* "/" <*> anyChar ]
 
 -- | Map the numbers starting at @0@ to the letters starting at @a@.
 --

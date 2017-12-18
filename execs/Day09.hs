@@ -1,3 +1,4 @@
+{-# Language OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 9 solution
@@ -15,7 +16,7 @@ import Control.Applicative  (many, (<|>))
 import Data.Foldable        (traverse_)
 import Linear               (V2(V2))
 import Text.Megaparsec      (between, sepBy, label)
-import Text.Megaparsec.Char (char, anyChar, notChar)
+import Text.Megaparsec.Char (anyChar, notChar)
 
 -- $setup
 -- >>> import Text.Megaparsec (parseMaybe)
@@ -51,8 +52,8 @@ parseGroup ::
 parseGroup n =
   label "group" $
   foldl (+) (V2 n 0) <$>
-  between (char '{') (char '}')
-    (sepBy (parseGroup (n+1)  <|>  V2 0 <$> parseGarbage) (char ','))
+  between "{" "}"
+    (sepBy (parseGroup (n+1)  <|>  V2 0 <$> parseGarbage) ",")
 
 -- | Parse a angle-bracket bracketed region of characters and return the
 -- number of non-ignored, contained characters. Characters including and
@@ -76,5 +77,5 @@ parseGarbage :: Parser Int {- ^ garbage count -}
 parseGarbage =
   label "garbage" $
   sum <$>
-  between (char '<') (char '>')
-    (many (0 <$ char '!' <* anyChar  <|>  1 <$ notChar '>'))
+  between "<" ">"
+    (many (0 <$ "!" <* anyChar  <|>  1 <$ notChar '>'))

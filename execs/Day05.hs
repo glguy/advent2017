@@ -1,3 +1,10 @@
+{-|
+Module      : Main
+Description : Day 5 solution
+Copyright   : (c) Eric Mertens, 2017
+License     : ISC
+Maintainer  : emertens@gmail.com
+-}
 module Main where
 
 import           Advent (getInput)

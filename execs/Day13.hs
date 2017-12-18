@@ -1,3 +1,4 @@
+{-# Language OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 13 solution
@@ -34,7 +35,7 @@ main =
 -- >>> parseMaybe parseScanner "12: 34"
 -- Just (12,34)
 parseScanner :: Parser (Int,Int)
-parseScanner = (,) <$> decimal <* string ": " <*> decimal
+parseScanner = (,) <$> decimal <* ": " <*> decimal
 
 -- | Returns true when the scanner will be at position 0 at the
 -- given time-step.

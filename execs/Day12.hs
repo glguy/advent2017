@@ -1,3 +1,4 @@
+{-# Language OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 12 solution
@@ -12,7 +13,7 @@ module Main where
 
 import Advent (Parser, getParsedLines)
 import Text.Megaparsec (many, sepBy)
-import Text.Megaparsec.Char (string, newline)
+import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Char.Lexer (decimal)
 import Data.Graph.Inductive (UGr, reachable, noComponents, mkUGraph)
 
@@ -30,4 +31,4 @@ toGraph xs = mkUGraph (fst <$> xs) (sequenceA =<< xs)
 
 -- | Parses lines of the format @node <-> node, node, node@.
 parser :: Parser (Int,[Int])
-parser = (,) <$> decimal <* string " <-> " <*> decimal `sepBy` string ", "
+parser = (,) <$> decimal <* " <-> " <*> decimal `sepBy` ", "

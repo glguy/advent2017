@@ -1,9 +1,19 @@
+{-|
+Module      : Main
+Description : Day 1 solution
+Copyright   : (c) Eric Mertens, 2017
+License     : ISC
+Maintainer  : emertens@gmail.com
+
+-}
 module Main (main) where
 
 import Advent (getInput)
 import Data.Char (digitToInt)
 
 
+-- | Print the solution to day 1. Input file can be overridden via the
+-- command-line.
 main :: IO ()
 main =
   do xs <- parseInput <$> getInput 1
