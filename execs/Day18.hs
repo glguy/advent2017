@@ -39,17 +39,17 @@ part1 = go Nothing
     go s (Recv _ p) = s
     go _ Done       = Nothing
 
-data Sim = Sim { p0, p1 :: Command, q1, q2 :: Seq Integer, ctr :: !Int }
+data Sim = Sim { p0, p1 :: Command, q0, q1 :: Seq Integer, ctr :: !Int }
 
 -- | Count the number of sends by program #1 when executing program #0 and
 -- program #1 in parallel.
 --
 -- This implementation makes use of the @RecordWildCards@ extension.
 part2 :: Sim -> Int
-part2 Sim{p0 = Send x p0,                ..} = part2 Sim{q2 = q2|>x             , ..}
-part2 Sim{p1 = Send x p1,                ..} = part2 Sim{q1 = q1|>x, ctr = ctr+1, ..}
-part2 Sim{p0 = Recv _ f1, q1 = x :<| q1, ..} = part2 Sim{p0 = f1 x              , ..}
-part2 Sim{p1 = Recv _ f2, q2 = x :<| q2, ..} = part2 Sim{p1 = f2 x              , ..}
+part2 Sim{p0 = Send x p0,                ..} = part2 Sim{q1 = q1|>x             , ..}
+part2 Sim{p1 = Send x p1,                ..} = part2 Sim{q0 = q0|>x, ctr = ctr+1, ..}
+part2 Sim{p0 = Recv _ f1, q0 = x :<| q0, ..} = part2 Sim{p0 = f1 x              , ..}
+part2 Sim{p1 = Recv _ f2, q1 = x :<| q1, ..} = part2 Sim{p1 = f2 x              , ..}
 part2 Sim{..}                                = ctr
 
 -- | Observable program execution effects
