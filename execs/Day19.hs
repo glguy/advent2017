@@ -21,9 +21,11 @@ import qualified Data.Vector as V
 main :: IO ()
 main =
   do input <- parseInput <$> getInput 19
-     let Just startCol = V.findIndex (' ' /=) (input V.! 0)
+
+     let Just startCol = V.elemIndex '|' (input V.! 0)
          start         = C startCol 0
          path          = toPath input up start
+
      putStrLn (filter isAlpha path)
      print (length path)
 
@@ -44,18 +46,13 @@ toPath ::
   Delta                    {- ^ direction -} ->
   Coord                    {- ^ location  -} ->
   String                   {- ^ path      -}
-toPath grid dir c =
+toPath grid d c =
+  let isPath d' = grid ! move c d' /= ' '
+      next d'   = toPath grid d' (move c d') in
   case grid ! c of
-    ' ' -> []
-    '+'
-      | (dir == down || dir == up) ->
-        '+' : if grid ! move c right /= ' '
-                then toPath grid right (move c right)
-                else toPath grid left  (move c left)
-
-      | (dir == left || dir == right) ->
-        '+' : if grid ! move c up /= ' '
-                then toPath grid up   (move c up)
-                else toPath grid down (move c down)
-
-    a -> a : toPath grid dir (move c dir)
+    ' '                            -> []
+    '+' | d /= down , isPath up    -> '+' : next up
+        | d /= up   , isPath down  -> '+' : next down
+        | d /= left , isPath right -> '+' : next right
+        | d /= right, isPath left  -> '+' : next left
+    a                              -> a   : next d
