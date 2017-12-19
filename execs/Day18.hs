@@ -30,13 +30,13 @@ main =
      print (part1 (pgm 0))
      print (part2 (Sim (pgm 0) (pgm 1) mempty mempty 0))
 
--- | Compute the last send command that preceeds a non-zero receive command.
+-- | Compute the last send command that precedes a non-zero receive command.
 part1 :: Command -> Maybe Integer
 part1 = go Nothing
   where
     go _ (Send x p) = go (Just x) p
     go s (Recv 0 p) = go s (p 0)
-    go s (Recv _ p) = s
+    go s (Recv _ _) = s
     go _ Done       = Nothing
 
 data Sim = Sim { p0, p1 :: Command, q0, q1 :: Seq Integer, ctr :: !Int }
