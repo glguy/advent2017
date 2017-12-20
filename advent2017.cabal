@@ -148,12 +148,6 @@ executable Day19
 
 executable Day20
   main-is:             Day20.hs
-  build-depends:       advent2017, base, containers, megaparsec, linear
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
-
-executable Day20
-  main-is:             Day20.hs
   build-depends:       advent2017, base, containers, linear, megaparsec
   hs-source-dirs:      execs
   default-language:    Haskell2010
