@@ -23,14 +23,13 @@ composition.
 -}
 module Main where
 
-import Advent                     (Parser, getParsedInput)
+import Advent                     (Parser, getParsedInput, number)
 import Advent.Permutation         (Permutation, rotateRight, runPermutation, swap)
 import Data.Semigroup             (Semigroup, (<>), sconcat, stimes)
 import Data.Char                  (chr, ord)
 import GHC.TypeLits               (KnownNat)
-import Text.Megaparsec            (choice, eof, sepBy)
-import Text.Megaparsec.Char       (anyChar, newline)
-import Text.Megaparsec.Char.Lexer (decimal)
+import Text.Megaparsec            (choice, sepBy)
+import Text.Megaparsec.Char       (letterChar)
 
 -- $setup
 -- >>> :set -XDataKinds
@@ -45,14 +44,14 @@ main =
 
 -- | Parse an input string as a dance.
 parseDance :: KnownNat n => Parser (Dance n)
-parseDance = mconcat <$> sepBy parseDanceStep "," <* newline <* eof
+parseDance = mconcat <$> sepBy parseDanceStep ","
 
 -- | Parse a single step in a dance.
 parseDanceStep :: KnownNat n => Parser (Dance n)
 parseDanceStep = choice
-  [ spinDance <$ "s" <*> decimal
-  , swapDance <$ "x" <*> decimal <* "/" <*> decimal
-  , partDance <$ "p" <*> anyChar <* "/" <*> anyChar ]
+  [ spinDance <$ "s" <*> number
+  , swapDance <$ "x" <*> number <* "/" <*> number
+  , partDance <$ "p" <*> letterChar <* "/" <*> letterChar ]
 
 -- | Map the numbers starting at @0@ to the letters starting at @a@.
 --

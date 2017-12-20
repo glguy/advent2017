@@ -10,7 +10,7 @@ main =
   do hPutStr stderr "Advent: " >> doctest ["-icommon", "Advent"]
      hPutStr stderr "Advent.Fix: " >> doctest ["-icommon", "Advent.Fix"]
      hPutStr stderr "Advent.Permutation: " >> doctest ["-icommon", "Advent.Permutation"]
-     for_ [1..17] $ \i ->
+     for_ [1..20] $ \i ->
        do let str = printf "%02d" (i::Int)
           hPutStr stderr (str ++ ": ")
           doctest ["-icommon", "execs/Day" ++ str ++ ".hs"]

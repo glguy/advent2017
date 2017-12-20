@@ -1,6 +1,6 @@
 {-|
 Module      : Advent.Coord
-Description : Cartesian coordinates data and operations
+Description : Day 19 solution
 Copyright   : (c) Eric Mertens, 2017
 License     : ISC
 Maintainer  : emertens@gmail.com

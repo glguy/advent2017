@@ -4,8 +4,10 @@ import System.Environment
 import Text.Printf
 import Text.Megaparsec (many, parse, parseErrorTextPretty, Parsec, eof)
 import Text.Megaparsec.Char (newline)
+import Text.Megaparsec.Char.Lexer (decimal, signed)
 import Data.Void
 import Data.List
+import qualified Data.Set as Set
 
 -- | Get the input for the given day.
 --
@@ -64,3 +66,16 @@ same xs = all (head xs ==) xs
 -- [(1,[2,3]),(2,[1,3]),(3,[1,2])]
 pickOne :: [a] -> [(a, [a])]
 pickOne xs = [ (x, l++r) | (l,x:r) <- zip (inits xs) (tails xs) ]
+
+-- | Parse a signed integral number
+number :: Integral a => Parser a
+number = signed (return ()) decimal
+
+-- | Implementation of 'nub' that uses 'Ord' for efficiency.
+ordNub :: Ord a => [a] -> [a]
+ordNub = go Set.empty
+  where
+    go _ [] = []
+    go seen (x:xs)
+      | Set.member x seen = go seen xs
+      | otherwise         = x : go (Set.insert x seen) xs

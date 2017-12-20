@@ -12,9 +12,6 @@ a periodic scanner.
 module Main where
 
 import Advent
-import Text.Megaparsec
-import Text.Megaparsec.Char
-import Text.Megaparsec.Char.Lexer
 import Data.List
 
 -- | The scanners are represented by a pair of the number of
@@ -35,7 +32,7 @@ main =
 -- >>> parseMaybe parseScanner "12: 34"
 -- Just (12,34)
 parseScanner :: Parser (Int,Int)
-parseScanner = (,) <$> decimal <* ": " <*> decimal
+parseScanner = (,) <$> number <* ": " <*> number
 
 -- | Returns true when the scanner will be at position 0 at the
 -- given time-step.

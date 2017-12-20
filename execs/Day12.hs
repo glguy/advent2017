@@ -11,10 +11,8 @@ For fun we'll just use the @fgl@ package to do this.
 -}
 module Main where
 
-import Advent (Parser, getParsedLines)
+import Advent (Parser, getParsedLines, number)
 import Text.Megaparsec (many, sepBy)
-import Text.Megaparsec.Char (newline)
-import Text.Megaparsec.Char.Lexer (decimal)
 import Data.Graph.Inductive (UGr, reachable, noComponents, mkUGraph)
 
 main :: IO ()
@@ -31,4 +29,4 @@ toGraph xs = mkUGraph (fst <$> xs) (sequenceA =<< xs)
 
 -- | Parses lines of the format @node <-> node, node, node@.
 parser :: Parser (Int,[Int])
-parser = (,) <$> decimal <* " <-> " <*> decimal `sepBy` ", "
+parser = (,) <$> number <* " <-> " <*> number `sepBy` ", "
