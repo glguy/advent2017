@@ -142,6 +142,12 @@ executable Day18
 
 executable Day19
   main-is:             Day19.hs
-  build-depends:       advent2017, base, containers, vector, lens, fgl, split, megaparsec
+  build-depends:       advent2017, base, vector
+  hs-source-dirs:      execs
+  default-language:    Haskell2010
+
+executable Day20
+  main-is:             Day20.hs
+  build-depends:       advent2017, base, containers, megaparsec, linear
   hs-source-dirs:      execs
   default-language:    Haskell2010
