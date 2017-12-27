@@ -79,3 +79,15 @@ ordNub = go Set.empty
     go seen (x:xs)
       | Set.member x seen = go seen xs
       | otherwise         = x : go (Set.insert x seen) xs
+
+
+-- | Compute the minimum element of a list or return Nothing if it is empty.
+--
+-- >>> minimumMaybe []
+-- Nothing
+-- >>> minimumMaybe [2,1,3]
+-- Just 1
+minimumMaybe :: Ord a => [a] -> Maybe a
+minimumMaybe xs
+  | null xs   = Nothing
+  | otherwise = Just $! minimum xs

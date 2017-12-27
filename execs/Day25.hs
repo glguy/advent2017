@@ -6,19 +6,24 @@ Copyright   : (c) Eric Mertens, 2017
 License     : ISC
 Maintainer  : emertens@gmail.com
 
+<http://adventofcode.com/2017/day/25>
+
 Implement a Turing Machine.
 
 -}
 module Main where
 
-import Advent
-import Advent.Fix
-import Data.IntSet (IntSet)
-import Text.Megaparsec
-import Text.Megaparsec.Char
+import Advent               (Parser, getParsedInput, number)
+import Advent.Fix           (Fix(Fix), ana)
+import Data.IntSet          (IntSet)
+import Control.Applicative  (many, some, (<|>))
+import Text.Megaparsec.Char (letterChar)
 import qualified Data.IntSet as IntSet
-import qualified Data.Map as Map
+import qualified Data.Map    as Map
 
+
+-- | Print the solution to the task. Input file can be overridden via
+-- command-line arguments.
 main :: IO ()
 main =
   do (start, iter, rules) <- getParsedInput 25 parseInput
@@ -30,27 +35,29 @@ main =
 
      print checksum
 
--- | Step the machine multiple iterations.
+-- | Step a machine multiple iterations.
 steps :: Int {- ^ iterations -} -> Machine -> Machine
 steps 0 m = m
 steps n m = steps (n-1) $! step m
 
--- | Advance the tape machine a single state.
+-- | Advance the tape machine a single step.
 step :: Machine -> Machine
 step (Machine tape cursor (Fix (Rule a0 a1))) =
-  Machine (update cursor tape) (cursor + d) p
-  where
-    update       = if v then IntSet.insert else IntSet.delete
-    Action v d p = if IntSet.member cursor tape then a1 else a0
+  let Action v d p = if IntSet.member cursor tape then a1 else a0
+  in Machine (updateSet v cursor tape) (cursor + d) p
+
+-- | When the argument is 'True', insert the given number into the set,
+-- otherwise remove it from the set.
+updateSet :: Bool -> Int -> IntSet -> IntSet
+updateSet True  = IntSet.insert
+updateSet False = IntSet.delete
 
 -- | The state of a machine: tape, cursor address, current program
-data Machine = Machine IntSet Int (Fix Rule)
+data Machine = Machine !IntSet !Int !(Fix Rule)
 
 -- | Transform a list of named rules into a single program.
 buildProgram :: [(String, Rule String)] -> String -> Fix Rule
-buildProgram entries = ana (m Map.!)
-  where
-    m = Map.fromList entries
+buildProgram entries = ana (Map.fromList entries Map.!)
 
 -- | A rule defines a single state. The first action is used when the
 -- current value of the tape is 0, The second action is used when the
@@ -61,7 +68,7 @@ data Rule a = Rule (Action a) (Action a) deriving (Show, Functor)
 -- | An update action for a rule containing: the new tape value, an
 -- offset to the cursor, and the next program state. Actions are
 -- parameterized by the type of program to jump to.
-data Action a = Action Bool Int a deriving (Show, Functor)
+data Action a = Action !Bool !Int a deriving (Show, Functor)
 
 -- | Parse an input file to extract the initial state, the number of iterations
 -- and the list of states and their associated rules.
@@ -76,8 +83,8 @@ parseInput =
 parseState :: Parser (String, Rule String)
 parseState =
   do name <- "\nIn state " *> parseName <* ":\n"
-     a0 <- parseSubRule "0"
-     a1 <- parseSubRule "1"
+     a0   <- parseSubRule "0"
+     a1   <- parseSubRule "1"
      pure (name, Rule a0 a1)
 
 -- | Parse the sub-component of a states rules using the given parser
