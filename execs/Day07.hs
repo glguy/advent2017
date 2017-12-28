@@ -24,12 +24,13 @@ module Main
 
     -- * Types
   , Node(Node)
-  , Summary(Summary, nodeWeight, treeWeight)
+  , Summary(Summary)
 
     -- * Computation
   , topName
   , summarize
   , computeCorrection
+  , corrections
 
     -- * Change tracking
   , OneChangeT(OCT)
@@ -195,7 +196,8 @@ topName m = Set.findMin
 
 -- | Summary of a tree containing the root node's weight and the whole
 -- tree's weight.
-data Summary = Summary { nodeWeight, treeWeight :: !Int } deriving Show
+data Summary = Summary !Int !Int -- ^ top node weight, total weight
+  deriving Show
 
 
 -- | Given a tree, compute the 'Summary' for that tree and record
@@ -209,16 +211,16 @@ data Summary = Summary { nodeWeight, treeWeight :: !Int } deriving Show
 -- >>> let summarizeExample = mapM_ print . runOneChangeT . summarize . anaFromMap example
 --
 -- >>> summarizeExample "ugml"
--- (Nothing,Summary {nodeWeight = 68, treeWeight = 251})
+-- (Nothing,Summary 68 251)
 --
 -- >>> summarizeExample "padx"
--- (Nothing,Summary {nodeWeight = 45, treeWeight = 243})
+-- (Nothing,Summary 45 243)
 --
 -- >>> summarizeExample "fwft"
--- (Nothing,Summary {nodeWeight = 72, treeWeight = 243})
+-- (Nothing,Summary 72 243)
 --
 -- >>> summarizeExample "tknk"
--- (Just 60,Summary {nodeWeight = 41, treeWeight = 770})
+-- (Just 60,Summary 41 770)
 --
 -- These next examples show how ambiguity can arise in a child node and then
 -- be resolved in a parent.
@@ -226,30 +228,59 @@ data Summary = Summary { nodeWeight, treeWeight :: !Int } deriving Show
 -- >>> let summarizeTrickier = mapM_ print . runOneChangeT . summarize . anaFromMap trickier
 --
 -- >>> summarizeTrickier "b"
--- (Just 2,Summary {nodeWeight = 4, treeWeight = 8})
--- (Just 1,Summary {nodeWeight = 4, treeWeight = 6})
+-- (Just 2,Summary 4 8)
+-- (Just 1,Summary 4 6)
 --
 -- >>> summarizeTrickier "a"
--- (Just 2,Summary {nodeWeight = 1, treeWeight = 17})
+-- (Just 2,Summary 1 17)
 summarize :: Fix Node -> OneChangeT Int [] Summary
 summarize = cataM $ \(Node n xs) ->
 
-  if same (map treeWeight xs)
+  if same [ w | Summary _ w <- xs ]
 
     then -- all children matched, no changes needed
-      pure (Summary n (n + sum (map treeWeight xs)))
+      pure (Summary n (n + sum [ w | Summary _ w <- xs ]))
 
     else -- not all children matched, consider ways to fix this
       asum
-         [ Summary n (n + length xs * other)
-           <$ change (nodeWeight x + discrepency)
+         [ Summary n (n + length xs * newTree) <$ change newNode
+         | Summary newNode newTree <- corrections xs ]
 
-         | (x, xs') <- pickOne xs
-         , let weights = map treeWeight xs'
-         , same weights            -- verify that all other children would now match
-         , other <- take 1 weights -- all the element were same, consider one of them
-         , let discrepency = other - treeWeight x
-         ]
+-- | Given a list of child node summaries, generate the possible corrected
+-- child node weights and the resulting total child weight after that
+-- change. It doesn't matter /which/ node is changed, so that isn't tracked.
+--
+-- With two children either might need to be fixed.
+--
+-- >>> corrections [Summary 3 6, Summary 4 8]
+-- [Summary 5 8,Summary 2 6]
+--
+-- With more than two children it will be clear which is wrong.
+--
+-- >>> corrections [Summary 1 4, Summary 2 7, Summary 3 7 ]
+-- [Summary 4 7]
+--
+-- If no corrections are needed, none are offered.
+--
+-- >>> corrections (replicate 2 (Summary 1 6))
+-- []
+-- >>> corrections [Summary 1 6]
+-- []
+-- >>> corrections []
+-- []
+corrections ::
+  [Summary] {- ^ all child summaries            -} ->
+  [Summary] {- ^ possible fixed child summaries -}
+corrections xs =
+  [ Summary (nodeWeight + discrepency) other
+
+  | (Summary nodeWeight treeWeight, xs') <- pickOne xs
+  , let weights = [ w | Summary _ w <- xs' ]
+  , same weights            -- verify that all other children would now match
+  , other <- take 1 weights -- all the element were same, consider one of them
+  , let discrepency = other - treeWeight
+  , discrepency /= 0
+  ]
 
 
 -- | Given a tree, compute the corrected weight to balance the whole tree.
