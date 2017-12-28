@@ -14,7 +14,7 @@ Implement a Turing Machine.
 module Main where
 
 import Advent               (Parser, getParsedInput, number)
-import Advent.Fix           (Fix(Fix), ana)
+import Advent.Fix           (Fix(Fix), anaFromMap)
 import Data.IntSet          (IntSet)
 import Control.Applicative  (many, some, (<|>))
 import Text.Megaparsec.Char (letterChar)
@@ -57,7 +57,7 @@ data Machine = Machine !IntSet !Int !(Fix Rule)
 
 -- | Transform a list of named rules into a single program.
 buildProgram :: [(String, Rule String)] -> String -> Fix Rule
-buildProgram entries = ana (Map.fromList entries Map.!)
+buildProgram = anaFromMap . Map.fromList
 
 -- | A rule defines a single state. The first action is used when the
 -- current value of the tape is 0, The second action is used when the
