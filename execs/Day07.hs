@@ -1,4 +1,4 @@
-{-# Language DeriveTraversable #-}
+{-# Language OverloadedStrings, DeriveTraversable #-}
 {-|
 Module      : Main
 Description : Day 7 solution
@@ -37,21 +37,21 @@ module Main
   , change
 
     -- * Parsing
-  , parseInput
   , parseLine
   ) where
 
-import           Advent               (getInput, pickOne, same)
+import           Advent               (Parser, getParsedLines, number, pickOne, same)
 import           Advent.Fix           (Fix, anaFromMap, cataM)
-import           Control.Applicative  (Alternative(empty,(<|>)))
+import           Control.Applicative  (Alternative(empty,(<|>),some))
 import           Control.Monad        (MonadPlus, ap, liftM)
-import           Data.Char            (isAlphaNum)
 import           Data.Foldable        (asum)
 import           Data.Functor.Classes (Show1(liftShowsPrec))
 import           Data.Map             (Map)
 import qualified Data.Map as Map
 import           Data.Maybe           (listToMaybe)
 import qualified Data.Set as Set
+import           Text.Megaparsec      (between, option, sepBy1)
+import           Text.Megaparsec.Char (letterChar)
 
 
 -- $setup
@@ -80,20 +80,20 @@ import qualified Data.Set as Set
 --
 -- >>> :{
 -- let example :: Map String (Node String)
---     example = parseInput $ unlines
---       [ "pbga (66)"
---       , "xhth (57)"
---       , "ebii (61)"
---       , "havc (66)"
---       , "ktlj (57)"
---       , "fwft (72) -> ktlj, cntj, xhth"
---       , "qoyq (66)"
---       , "padx (45) -> pbga, havc, qoyq"
---       , "tknk (41) -> ugml, padx, fwft"
---       , "jptl (61)"
---       , "ugml (68) -> gyxo, ebii, jptl"
---       , "gyxo (61)"
---       , "cntj (57)"]
+--     example = Map.fromList
+--       [ ("pbga", Node 66 [])
+--       , ("xhth", Node 57 [])
+--       , ("ebii", Node 61 [])
+--       , ("havc", Node 66 [])
+--       , ("ktlj", Node 57 [])
+--       , ("fwft", Node 72 ["ktlj","cntj","xhth"])
+--       , ("qoyq", Node 66 [])
+--       , ("padx", Node 45 ["pbga","havc","qoyq"])
+--       , ("tknk", Node 41 ["ugml","padx","fwft"])
+--       , ("jptl", Node 61 [])
+--       , ("ugml", Node 68 ["gyxo","ebii","jptl"])
+--       , ("gyxo", Node 61 [])
+--       , ("cntj", Node 57 [])]
 -- :}
 --
 -- There are trickier tree problems when the unbalanced nodes have exactly
@@ -116,12 +116,12 @@ import qualified Data.Set as Set
 --
 -- >>> :{
 -- let trickier :: Map String (Node String)
---     trickier = parseInput $ unlines
---       [ "a (1) -> b, c"
---       , "b (4) -> d, e"
---       , "c (8)"
---       , "d (1)"
---       , "e (2)"]
+--     trickier = Map.fromList
+--       [ ("a", Node 1 ["b","c"])
+--       , ("b", Node 4 ["d","e"])
+--       , ("c", Node 8 [])
+--       , ("d", Node 1 [])
+--       , ("e", Node 2 [])]
 -- :}
 
 -- | Representation of a node in the tree.
@@ -144,7 +144,7 @@ instance Show1 Node where
 -- can be overridden via command-line arguments.
 main :: IO ()
 main =
-  do input <- parseInput <$> getInput 7
+  do input <- Map.fromList <$> getParsedLines 7 parseLine
 
      -- part 1
      let top = topName input
@@ -154,31 +154,24 @@ main =
      print (computeCorrection (anaFromMap input top))
 
 
--- | Parse the input file as a map of entries, their weights and neighbors.
---
--- >>> parseInput "fwft (72) -> ktlj, cntj, xhth\nqoyq (66)\n"
--- fromList [("fwft",Node 72 ["ktlj","cntj","xhth"]),("qoyq",Node 66 [])]
-parseInput ::
-  String                   {- ^ input file contents                          -} ->
-  Map String (Node String) {- ^ map from node name to weight and child names -}
-parseInput = Map.fromList . map parseLine . lines
-
-
 -- | Parse a single line of the input containing the name, weight, and neighbors.
 --
--- >>> parseLine "example (10)"
--- ("example",Node 10 [])
--- >>> parseLine "example (10) -> this"
--- ("example",Node 10 ["this"])
--- >>> parseLine "example (10) -> this, that"
--- ("example",Node 10 ["this","that"])
+-- >>> import Text.Megaparsec (parseMaybe)
+--
+-- >>> parseMaybe parseLine "example (10)"
+-- Just ("example",Node 10 [])
+-- >>> parseMaybe parseLine "example (10) -> this"
+-- Just ("example",Node 10 ["this"])
+-- >>> parseMaybe parseLine "example (10) -> this, that"
+-- Just ("example",Node 10 ["this","that"])
 parseLine ::
-  String                {- ^ file line                          -} ->
-  (String, Node String) {- ^ node name, weight, and child names -}
-parseLine str = (n, Node (read w) ns)
-  where
-    n : w : ns = words (filter isValid str)
-    isValid x = isAlphaNum x || x == ' '
+  Parser (String, Node String) {- ^ node name, weight, and child names -}
+parseLine =
+  do let parseName = some letterChar
+     name     <- parseName
+     weight   <- between " (" ")" number
+     children <- option [] (" -> " >> parseName `sepBy1` ", ")
+     pure (name, Node weight children)
 
 
 -- | Find the top-most name in the map of entries.
@@ -191,7 +184,7 @@ topName :: Ord name => Map name (Node name) -> name
 topName m = Set.findMin
           $ Set.difference
               (Map.keysSet m)
-              (Set.fromList [x | Node _ xs <- Map.elems m, x <- xs])
+              (Set.fromList (concatMap (\(Node _ xs) -> xs) m))
 
 
 -- | Summary of a tree containing the root node's weight and the whole
