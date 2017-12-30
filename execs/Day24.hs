@@ -26,8 +26,7 @@ main =
      print (maximum (map snd bridges))
 
      -- part 2
-     let targetDepth = maximum (map fst bridges)
-     print (maximum [weight | (depth,weight) <- bridges, depth == targetDepth])
+     print (snd (maximum bridges))
 
 -- | Given a required number of ports and a piece, return the possible
 -- unique orientations of that piece.
