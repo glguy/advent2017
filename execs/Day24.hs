@@ -13,20 +13,22 @@ counts of two pieces must match.
 -}
 module Main where
 
-import Advent    (getParsedLines, number)
+import Advent    (Parser, getParsedLines, number)
 import Data.List (delete)
 
+-- | Print solutions to both parts of the task.
 main :: IO ()
 main =
-  do input <- getParsedLines 24 ((,) <$> number <* "/" <*> number)
+  do input <- getParsedLines 24 parseLine
 
      let bridges = search 0 0 0 input
 
-     -- part 1
-     print (maximum (map snd bridges))
+     print (maximum (map snd bridges)) -- part 1: weights
+     print (snd (maximum bridges))     -- part 2: lengths *then* weights
 
-     -- part 2
-     print (snd (maximum bridges))
+-- | Parse a pair of numbers separated by a @/@
+parseLine :: Parser (Int,Int)
+parseLine = (,) <$> number <* "/" <*> number
 
 -- | Given a required number of ports and a piece, return the possible
 -- unique orientations of that piece.
