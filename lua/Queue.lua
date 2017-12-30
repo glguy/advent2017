@@ -34,7 +34,7 @@ end
 --- Remove all values from queue.
 function methods:reset ()
         for i = self.first, self.last do
-                rawset(list, i, nil)
+                rawset(self, i, nil)
         end
         self.first = 1
         self.last = 0

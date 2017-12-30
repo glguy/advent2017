@@ -74,6 +74,7 @@ local function run (initial)
         return 'done'
 end
 
+
 --- Compute the answer to part 1.
 -- This runs the program while remembering send values until a non-zero
 -- receive is executed.
@@ -113,7 +114,7 @@ end
 local function drive (pgm, queue_in, queue_out)
 
         -- When program is finished, just flush its input queue
-        if coroutine.status(pgm) == dead then
+        if coroutine.status(pgm) == 'dead' then
                 queue_in:reset()
                 return
         end
