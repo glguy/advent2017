@@ -1,5 +1,10 @@
+#[macro_use]
+extern crate nom;
+
 use std::io::prelude::*;
 use std::fs::File;
+
+pub mod parsing;
 
 pub fn get_input(day: u32) -> String {
     let path = format!("../inputs/input{:02}.txt",day);
