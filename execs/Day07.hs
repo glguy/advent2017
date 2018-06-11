@@ -47,6 +47,7 @@ import           Control.Monad        (MonadPlus, ap, liftM)
 import           Data.Foldable        (asum)
 import           Data.Functor.Classes (Show1(liftShowsPrec))
 import           Data.Map             (Map)
+import           Data.Set             (Set)
 import qualified Data.Map as Map
 import           Data.Maybe           (listToMaybe)
 import qualified Data.Set as Set
@@ -330,3 +331,25 @@ instance MonadPlus m => Monad (OneChangeT c m) where
          (Nothing,_) -> pure (mb2,y)
          (_,Nothing) -> pure (mb1,y)
          _           -> empty
+
+
+data Balance
+  = Balanced (Set Int) -- one-hole contexts
+  | Unbalanced (Map Int (Set Int))
+               -- this new value can produce this new tree weight
+  deriving Show
+
+{-
+summarize :: Fix Node -> Maybe (Int, Int, Balance)
+summarize = cataM $ \(Node n xs) ->
+
+  if same [ w | Summary _ w <- xs ]
+
+    then -- all children matched, no changes needed
+      pure (Summary n (n + sum [ w | Summary _ w <- xs ]))
+
+    else -- not all children matched, consider ways to fix this
+      asum
+         [ Summary n (n + length xs * newTree) <$ change newNode
+         | Summary newNode newTree <- corrections xs ]
+-}

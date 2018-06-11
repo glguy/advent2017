@@ -1,3 +1,4 @@
+{-# Language DataKinds #-}
 {-|
 Module      : Main
 Description : Day 14 solution
@@ -12,6 +13,7 @@ we can combine our previous results to make something new.
 module Main where
 
 import           Advent
+import           Advent.Permutation
 import           Advent.Coord
 import           Control.Monad
 import           Control.Monad.ST (ST, runST)
@@ -83,11 +85,15 @@ bytesToInteger = foldl' (\acc x -> acc * 0x100 + fromIntegral x) 0
 tieKnots ::
   [Int]   {- ^ knot lengths   -} ->
   [Word8] {- ^ resulting rope -}
-tieKnots lengths = runST $
-  do v <- VU.thaw (VU.generate 256 fromIntegral)
-     let cursors = scanl (+) 0 (zipWith (+) [0 ..] lengths)
-     zipWithM_ (tieKnot v) lengths cursors
-     VU.toList <$> VU.unsafeFreeze v
+tieKnots lengths = runPermutation fromIntegral
+                 $ mconcat [ p o l
+                           | (o,l) <- zip (scanl (+) 0 (zipWith (+) [0..] lengths)) lengths
+                           ]
+
+p :: Int -> Int -> Permutation 256
+p o l = mkPermutation $ \i -> if (i-o)`mod`256 < l
+                                   then l-1-i+o+o
+                                   else i
 
 -- | Reverse the length of elements starting at the given cursor.
 tieKnot ::

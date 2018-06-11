@@ -24,6 +24,7 @@ module Advent.Permutation
   , order
   ) where
 
+import           Advent.Group
 import           Data.List
 import           Data.List.NonEmpty (NonEmpty((:|)))
 import           Data.Function (fix)
@@ -128,3 +129,6 @@ instance KnownNat n => Monoid (Permutation n) where
   mappend          = (<>)
   mconcat []       = mempty
   mconcat (x : xs) = sconcat (x :| xs)
+
+instance KnownNat n => Group (Permutation n) where
+  inverse = invert

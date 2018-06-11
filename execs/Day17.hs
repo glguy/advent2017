@@ -78,4 +78,4 @@ cursors jump = scanl' nextCursor 0 [1..]
 part2 ::
   Int {- ^ jump size             -} ->
   Int {- ^ number following zero -}
-part2 jump = last (elemIndices 1 (take 5e7 (cursors jump)))
+part2 = last . elemIndices 1 . take 5e7 . cursors
