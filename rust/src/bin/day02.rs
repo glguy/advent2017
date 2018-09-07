@@ -1,5 +1,5 @@
 extern crate advent_2017;
-#[macro_use]
+#[cfg_attr(test,macro_use)]
 extern crate indoc;
 
 use advent_2017::*;

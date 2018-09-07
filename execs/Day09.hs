@@ -15,8 +15,7 @@ import Advent               (Parser, getParsedInput)
 import Control.Applicative  (many, (<|>))
 import Data.Foldable        (traverse_)
 import Linear               (V2(V2))
-import Text.Megaparsec      (between, sepBy, label)
-import Text.Megaparsec.Char (anyChar, notChar)
+import Text.Megaparsec      (anySingle, anySingleBut, between, sepBy, label)
 
 -- $setup
 -- >>> import Text.Megaparsec (parseMaybe)
@@ -78,4 +77,4 @@ parseGarbage =
   label "garbage" $
   sum <$>
   between "<" ">"
-    (many (0 <$ "!" <* anyChar  <|>  1 <$ notChar '>'))
+    (many (0 <$ "!" <* anySingle  <|>  1 <$ anySingleBut '>'))

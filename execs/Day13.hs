@@ -29,6 +29,7 @@ main =
 
 -- | Parses a single scanner line: @decimal: decimal@
 --
+-- >>> import Text.Megaparsec (parseMaybe)
 -- >>> parseMaybe parseScanner "12: 34"
 -- Just (12,34)
 parseScanner :: Parser (Int,Int)

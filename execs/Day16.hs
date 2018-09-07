@@ -25,7 +25,7 @@ module Main where
 
 import Advent                     (Parser, getParsedInput, number)
 import Advent.Permutation         (Permutation, rotateRight, runPermutation, swap)
-import Data.Semigroup             (Semigroup, (<>), sconcat, stimes)
+import Data.Semigroup             (Semigroup, (<>), Dual(..), sconcat, stimes)
 import Data.Char                  (chr, ord)
 import GHC.TypeLits               (KnownNat)
 import Text.Megaparsec            (choice, sepBy)
@@ -50,7 +50,7 @@ parseDance = mconcat <$> sepBy parseDanceStep ","
 parseDanceStep :: KnownNat n => Parser (Dance n)
 parseDanceStep = choice
   [ spinDance <$ "s" <*> number
-  , swapDance <$ "x" <*> number <* "/" <*> number
+  , swapDance <$ "x" <*> number     <* "/" <*> number
   , partDance <$ "p" <*> letterChar <* "/" <*> letterChar ]
 
 -- | Map the numbers starting at @0@ to the letters starting at @a@.
@@ -67,6 +67,9 @@ intToLetter i = chr (i + ord 'a')
 letterToInt :: Char -> Int
 letterToInt c = ord c - ord 'a'
 
+-- | A dance is a renaming of dancers and a permutation of their positions
+type Dance n = (Dual (Permutation n), Permutation n) -- ^ renaming, permutation
+
 -- | Compute the final position of the dancers given a dance where
 -- dancers start in order.
 --
@@ -76,7 +79,7 @@ letterToInt c = ord c - ord 'a'
 -- >>> runDance (stimes 2 example)
 -- "ceadb"
 runDance :: KnownNat n => Dance n -> String
-runDance (Dance r p) = runPermutation intToLetter (r <> p)
+runDance (Dual r, p) = runPermutation intToLetter (r <> p)
 
 -- | The spin dance where all dancers move some number of positions
 -- to the right.
@@ -86,7 +89,7 @@ runDance (Dance r p) = runPermutation intToLetter (r <> p)
 -- >>> runDance (spinDance 1 :: Dance 3)
 -- "cab"
 spinDance :: KnownNat n => Int -> Dance n
-spinDance n = Dance mempty (rotateRight n)
+spinDance n = (mempty, rotateRight n)
 
 -- | The swap dance where dancers in the two positions trade places.
 --
@@ -95,7 +98,7 @@ spinDance n = Dance mempty (rotateRight n)
 -- >>> runDance (swapDance 0 1 <> swapDance 1 2 :: Dance 3)
 -- "bca"
 swapDance :: KnownNat n => Int -> Int -> Dance n
-swapDance x y = Dance mempty (swap x y)
+swapDance x y = (mempty, swap x y)
 
 -- | The parter dance where the two named dancers changes positions.
 --
@@ -104,16 +107,4 @@ swapDance x y = Dance mempty (swap x y)
 -- >>> runDance (partDance 'a' 'b' <> partDance 'a' 'c' :: Dance 3)
 -- "bca"
 partDance :: KnownNat n => Char -> Char -> Dance n
-partDance x y = Dance (swap (letterToInt x) (letterToInt y)) mempty
-
--- | A dance is a renaming of dancers and a permutation of their positions
-data Dance n = Dance !(Permutation n) !(Permutation n) -- ^ renaming, permutation
-
--- | Sequences first and then second dance
-instance KnownNat n => Semigroup (Dance n) where
-  Dance r1 p1 <> Dance r2 p2 = Dance (r2 <> r1) (p1 <> p2)
-
--- | Empty dance is no movement
-instance KnownNat n => Monoid (Dance n) where
-  mempty  = Dance mempty mempty
-  mappend = (<>)
+partDance x y = (Dual (swap (letterToInt x) (letterToInt y)), mempty)

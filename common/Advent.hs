@@ -5,6 +5,7 @@ import Text.Printf
 import Text.Megaparsec (many, parse, parseErrorTextPretty, Parsec, eof)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Char.Lexer (decimal, signed)
+import Text.Megaparsec.Error (errorBundlePretty)
 import Data.Void
 import Data.List
 import qualified Data.Set as Set
@@ -31,7 +32,7 @@ getParsedInput :: Int -> Parser a -> IO a
 getParsedInput i p =
   do input <- getInput i
      case parse p "input.txt" input of
-       Left e -> fail (parseErrorTextPretty e)
+       Left e -> fail (errorBundlePretty e)
        Right a -> return a
 
 getParsedLines :: Int -> Parser a -> IO [a]
