@@ -1,4 +1,3 @@
-{-# Language LambdaCase, ViewPatterns #-}
 {-|
 Module      : Main
 Description : Day 18 solution
@@ -33,6 +32,7 @@ import Text.Read           (readMaybe)
 import qualified Data.Map as Map
 import qualified Data.Vector as V
 
+
 -- | Print the solution to both parts of the puzzle. Input file can be
 -- overridden via command-line argument.
 main :: IO ()
@@ -43,7 +43,7 @@ main =
 
 -- | Transform an input file into a function from program ID to program effect.
 processInput :: String -> Integer -> Effect
-processInput = interpreter . parser . words
+processInput = interpreter . parser
 
 -- | Compute the last send command that precedes a non-zero receive command.
 --
@@ -165,25 +165,30 @@ data Instruction
   deriving (Read, Show)
 
 
--- | Parse a list of word tokens into a vector of instructions.
-parser ::
-  [String]             {- ^ word tokens  -} ->
-  V.Vector Instruction {- ^ instructions -}
-parser = V.unfoldr $ \case
-    "snd" : (expr -> Just x)                    : rest -> Just (Snd x  , rest)
-    "rcv" : (reg  -> Just x)                    : rest -> Just (Rcv x  , rest)
-    "set" : (reg  -> Just x) : (expr -> Just y) : rest -> Just (Set x y, rest)
-    "add" : (reg  -> Just x) : (expr -> Just y) : rest -> Just (Add x y, rest)
-    "mul" : (reg  -> Just x) : (expr -> Just y) : rest -> Just (Mul x y, rest)
-    "mod" : (reg  -> Just x) : (expr -> Just y) : rest -> Just (Mod x y, rest)
-    "jgz" : (expr -> Just x) : (expr -> Just y) : rest -> Just (Jgz x y, rest)
-    []                                               -> Nothing
-    tokens -> error ("Bad token stream: " ++ show tokens)
-  where
-    reg :: String -> Maybe Register
-    reg [x] | 'a' <= x, x <= 'z' = Just (Register x)
-    reg _                        = Nothing
+-- | Parse a text file into a vector of instructions.
+parser :: String {- ^ text file -} -> V.Vector Instruction
+parser input = V.fromList (zipWith parse1 [1..] (lines input))
 
-    expr :: String -> Maybe Expression
-    expr str = IntegerExpression  <$> readMaybe str
-           <|> RegisterExpression <$> reg str
+parse1 :: Int {- ^ line number -} -> String {- ^ line -} -> Instruction
+parse1 i line =
+  case parseInstruction (words line) of
+    Nothing -> error ("Failed to parse line " ++ show i ++ ": " ++ line)
+    Just instruction -> instruction
+
+parseInstruction :: [String] -> Maybe Instruction
+parseInstruction ["snd", x   ] = Snd <$> parseExpression x
+parseInstruction ["rcv", x   ] = Rcv <$> parseRegister   x
+parseInstruction ["set", x, y] = Set <$> parseRegister   x <*> parseExpression y
+parseInstruction ["add", x, y] = Add <$> parseRegister   x <*> parseExpression y
+parseInstruction ["mul", x, y] = Mul <$> parseRegister   x <*> parseExpression y
+parseInstruction ["mod", x, y] = Mod <$> parseRegister   x <*> parseExpression y
+parseInstruction ["jgz", x, y] = Jgz <$> parseExpression x <*> parseExpression y
+parseInstruction _             = Nothing
+
+parseExpression :: String -> Maybe Expression
+parseExpression t = RegisterExpression <$> parseRegister t
+                <|> IntegerExpression  <$> readMaybe     t
+
+parseRegister :: String -> Maybe Register
+parseRegister [x] | 'a' <= x, x <= 'z' = Just (Register x)
+parseRegister _                        = Nothing
