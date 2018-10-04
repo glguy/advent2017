@@ -1,5 +1,4 @@
-{-# Language RankNTypes      #-} -- Lens' type synonym use in 'reg'
-{-# Language RecordWildCards #-} -- abbreviations in 'part2'
+{-# Language LambdaCase, ViewPatterns #-}
 {-|
 Module      : Main
 Description : Day 18 solution
@@ -10,14 +9,27 @@ Maintainer  : emertens@gmail.com
 Day 18 defines a simple programming language with arithmetic operations
 and asynchronous communication.
 
+This implementation uses the following passes to transform the input
+program into a high-level interpretation of the effects of the program
+from which we can then easily answer the questions posed.
+
+0. Input text file                            -- String
+1. Lexing into words                          -- [String]
+2. Parsing into instructions                  -- Vector Instruction
+3. Interpreting into Send and Receive effects -- ProgramId -> Effect
+4. Analyzing effects to generate answers      -- Int
+
+>>> :main
+Just 2951
+7366
 -}
 module Main where
 
-import Advent        (getInput)
-import Control.Lens  (view, at, non, set, over, Lens')
-import Data.Map      (Map)
-import Data.Sequence (Seq((:<|)), (|>))
-import Text.Read     (readMaybe)
+import Advent              (getInput)
+import Control.Applicative ((<|>))
+import Data.Map            (Map)
+import Data.Maybe          (fromMaybe)
+import Text.Read           (readMaybe)
 import qualified Data.Map as Map
 import qualified Data.Vector as V
 
@@ -25,71 +37,153 @@ import qualified Data.Vector as V
 -- overridden via command-line argument.
 main :: IO ()
 main =
-  do input <- V.fromList . map words . lines <$> getInput 18
-     let pgm n = runProgram input (Map.singleton "p" n)
-     print (part1 (pgm 0))
-     print (part2 (Sim (pgm 0) (pgm 1) mempty mempty 0))
+  do start <- processInput <$> getInput 18
+     print (part1 start)
+     print (part2 start)
+
+-- | Transform an input file into a function from program ID to program effect.
+processInput :: String -> Integer -> Effect
+processInput = interpreter . parser . words
 
 -- | Compute the last send command that precedes a non-zero receive command.
-part1 :: Command -> Maybe Integer
-part1 = go Nothing
-  where
-    go _ (Send x p) = go (Just x) p
-    go s (Recv 0 p) = go s (p 0)
-    go s (Recv _ _) = s
-    go _ Done       = Nothing
-
-data Sim = Sim { p0, p1 :: Command, q0, q1 :: Seq Integer, ctr :: !Int }
-
--- | Count the number of sends by program #1 when executing program #0 and
--- program #1 in parallel.
 --
--- This implementation makes use of the @RecordWildCards@ extension.
-part2 :: Sim -> Int
-part2 Sim{p0 = Send x p0,                ..} = part2 Sim{q1 = q1|>x             , ..}
-part2 Sim{p1 = Send x p1,                ..} = part2 Sim{q0 = q0|>x, ctr = ctr+1, ..}
-part2 Sim{p0 = Recv _ f1, q0 = x :<| q0, ..} = part2 Sim{p0 = f1 x              , ..}
-part2 Sim{p1 = Recv _ f2, q1 = x :<| q1, ..} = part2 Sim{p1 = f2 x              , ..}
-part2 Sim{..}                                = ctr
+-- >>> :{
+-- part1 (processInput "set a 1 add a 2 mul a a mod a 5 snd a set a 0\
+--                     \ rcv a jgz a -1 set a 1 jgz a -2")
+-- :}
+-- Just 4
+part1 ::
+  (Integer -> Effect) {- ^ program ID to effect         -} ->
+  Maybe Integer       {- ^ last non-zero snd before rcv -}
+part1 start = go Nothing (start 0)
+  where
+    go :: Maybe Integer -> Effect -> Maybe Integer
+    go _ (Send x p)    = go (Just x) p -- remember last send
+    go s (Receive 0 p) = go s (p 0)    -- ignore rcv 0, put 0 back
+    go s (Receive _ _) = s             -- non-zero rcv, we're done
+    go _ Halt          = Nothing       -- never found the non-zero rcv!
+
+
+-- | Run two programs concurrently and count how many sends the second program
+-- executes once both programs are blocked.
+--
+-- >>> part2 (processInput "snd 1 snd 2 snd p rcv a rcv b rcv c rcv d")
+-- 3
+part2 ::
+  (Integer -> Effect) {- ^ program ID to effect -} ->
+  Int                 {- ^ sends from program 1 -}
+part2 start = go 0 (start 0) (start 1)
+  where
+    go :: Int -> Effect -> Effect -> Int
+    go ctr (Send o p0) p1 = go ctr     p0 (feed o p1)
+    go ctr p0 (Send o p1) = go (ctr+1) (feed o p0) p1
+    go ctr _ _            = ctr
+
+
+-- | Provide the given 'Integer' argument to the first 'Receive' command in a
+-- given effect sequence.
+feed :: Integer -> Effect -> Effect
+feed i (Send o p)       = Send o (feed i p)
+feed i (Receive _ k)    = k i
+feed _ Halt             = Halt
+
+------------------------------------------------------------------------
 
 -- | Observable program execution effects
-data Command
-  = Send Integer Command              -- ^ Send integer
-  | Recv Integer (Integer -> Command) -- ^ Receive integer with old register value
-  | Done                              -- ^ Execution complete
+data Effect
+  = Halt                -- ^ Execution complete
+  | Send Integer Effect -- ^ Send integer, continue
+  | Receive Integer (Integer -> Effect)
+  -- ^ Receive with original register value and continuation taking new value
 
--- | Lens into a map of integers where a missing key is treated as a zero.
-reg :: String -> Lens' (Map String Integer) Integer
-reg r = at r . non 0
-
--- | Either lookup a register or return the value of a constant.
-(!) ::
-  Map String Integer {- ^ registers          -} ->
-  String             {- ^ number or register -} ->
-  Integer            {- ^ argument value     -}
-m ! k =
-  case readMaybe k of
-    Just v  -> v
-    Nothing -> view (reg k) m
 
 -- | Compute the effect of executing a program starting at the first instruction
 -- using the given map as the initial set of registers.
-runProgram ::
-  V.Vector [String]  {- ^ instructions      -} ->
-  Map String Integer {- ^ initial registers -} ->
-  Command            {- ^ program effect    -}
-runProgram cmds = step 0
+interpreter ::
+  V.Vector Instruction {- ^ instructions   -} ->
+  Integer              {- ^ program ID     -} ->
+  Effect               {- ^ program effect -}
+interpreter cmds = go 0 . Map.singleton (Register 'p')
   where
-    step pc regs =
+    go ::
+      Int                  {- ^ program counter -} ->
+      Map Register Integer {- ^ registers       -} ->
+      Effect               {- ^ program effect  -}
+    go pc regs =
       case cmds V.!? pc of
-        Nothing          -> Done
-        Just ["snd",x  ] -> Send (regs!x) (      step (pc+1)                regs)
-        Just ["rcv",x  ] -> Recv (regs!x) (\i -> step (pc+1) (set (reg x) i regs))
-        Just ["set",x,y] -> step (pc+1) (set  (reg x)        (regs!y)  regs)
-        Just ["add",x,y] -> step (pc+1) (over (reg x) (+     (regs!y)) regs)
-        Just ["mul",x,y] -> step (pc+1) (over (reg x) (*     (regs!y)) regs)
-        Just ["mod",x,y] -> step (pc+1) (over (reg x) (`mod` (regs!y)) regs)
-        Just ["jgz",x,y] -> step (pc+o) regs
-          where
-            o | regs!x > 0 = fromIntegral (regs!y)
-              | otherwise  = 1
+        Nothing        -> Halt
+        Just (Snd x  ) -> Send (regs!x) (go (pc+1) regs)
+        Just (Rcv x  ) -> Receive (regs!RegisterExpression x)
+                                  (\i -> go (pc+1) (upd (\_ -> i) x regs))
+        Just (Set x y) -> go (pc+1) (upd (\_ -> regs!y) x regs)
+        Just (Add x y) -> go (pc+1) (upd (+     regs!y) x regs)
+        Just (Mul x y) -> go (pc+1) (upd (*     regs!y) x regs)
+        Just (Mod x y) -> go (pc+1) (upd (`mod` regs!y) x regs)
+        Just (Jgz x y) -> go (pc+o) regs
+          where o | regs!x > 0 = fromIntegral (regs!y)
+                  | otherwise  = 1
+
+-- | Evaluate an expression given the current registers.
+(!) ::
+  Map Register Integer {- ^ registers  -} ->
+  Expression           {- ^ expression -} ->
+  Integer              {- ^ value      -}
+_ ! IntegerExpression  i = i
+m ! RegisterExpression r = Map.findWithDefault 0 r m
+
+
+-- | Update the value stored in a map and treat missing keys as @0@.
+upd ::
+  (Integer -> Integer) {- ^ update function   -} ->
+  Register             {- ^ register name     -} ->
+  Map Register Integer {- ^ registers         -} ->
+  Map Register Integer {- ^ updated registers -}
+upd f = Map.alter ((Just $!) . f . fromMaybe 0)
+
+------------------------------------------------------------------------
+
+-- | Register names: single letters
+newtype Register = Register Char
+  deriving (Read, Show, Eq, Ord)
+
+-- | Expressions are either integer literals or register values
+data Expression
+  = RegisterExpression Register -- ^ read from register
+  | IntegerExpression  Integer  -- ^ constant integer
+  deriving (Read, Show)
+
+
+-- | Program instruction
+data Instruction
+  = Snd Expression            -- ^ v: send value v
+  | Rcv Register              -- ^ r: receive to register r
+  | Set Register Expression   -- ^ r, v: @r = v@
+  | Add Register Expression   -- ^ r, v: @r = r + v@
+  | Mul Register Expression   -- ^ r, v: @r = r * v@
+  | Mod Register Expression   -- ^ r, v: @r = r % v@
+  | Jgz Expression Expression -- ^ t, offset: @if t > 0 then jump by offset@
+  deriving (Read, Show)
+
+
+-- | Parse a list of word tokens into a vector of instructions.
+parser ::
+  [String]             {- ^ word tokens  -} ->
+  V.Vector Instruction {- ^ instructions -}
+parser = V.unfoldr $ \case
+    "snd" : (expr -> Just x)                    : rest -> Just (Snd x  , rest)
+    "rcv" : (reg  -> Just x)                    : rest -> Just (Rcv x  , rest)
+    "set" : (reg  -> Just x) : (expr -> Just y) : rest -> Just (Set x y, rest)
+    "add" : (reg  -> Just x) : (expr -> Just y) : rest -> Just (Add x y, rest)
+    "mul" : (reg  -> Just x) : (expr -> Just y) : rest -> Just (Mul x y, rest)
+    "mod" : (reg  -> Just x) : (expr -> Just y) : rest -> Just (Mod x y, rest)
+    "jgz" : (expr -> Just x) : (expr -> Just y) : rest -> Just (Jgz x y, rest)
+    []                                               -> Nothing
+    tokens -> error ("Bad token stream: " ++ show tokens)
+  where
+    reg :: String -> Maybe Register
+    reg [x] | 'a' <= x, x <= 'z' = Just (Register x)
+    reg _                        = Nothing
+
+    expr :: String -> Maybe Expression
+    expr str = IntegerExpression  <$> readMaybe str
+           <|> RegisterExpression <$> reg str
