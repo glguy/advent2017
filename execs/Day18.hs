@@ -5,24 +5,51 @@ Copyright   : (c) Eric Mertens, 2017
 License     : ISC
 Maintainer  : emertens@gmail.com
 
+<https://adventofcode.com/2017/day/18>
+
 Day 18 defines a simple programming language with arithmetic operations
-and asynchronous communication.
+and asynchronous communication. Our task will be to analyze the behavior
+of the send and receive commands performed by these kinds of programs.
 
 This implementation uses the following passes to transform the input
 program into a high-level interpretation of the effects of the program
 from which we can then easily answer the questions posed.
 
-0. Input text file                            -- String
-1. Lexing into words                          -- [String]
-2. Parsing into instructions                  -- Vector Instruction
-3. Interpreting into Send and Receive effects -- ProgramId -> Effect
-4. Analyzing effects to generate answers      -- Int
+1. Get input file with 'getInput'
+2. Parse the input with 'parser'
+3. Compute effects with 'interpreter'
+4. Analyze the effects with 'part1' and 'part2'
 
 >>> :main
 Just 2951
 7366
 -}
-module Main where
+module Main
+  (
+  -- * Main drivers
+    main
+  , part1
+  , part2
+  , feed
+
+  -- * Interpreter
+  -- $interp
+  , Effect(..)
+  , interpreter
+  , (!)
+  , upd
+
+  -- * Parser
+  -- $parser
+  , Instruction(..)
+  , Expression(..)
+  , Register(..)
+  , parser
+  , parseLine
+  , parseInstruction
+  , parseRegister
+  , parseExpression
+  ) where
 
 import Advent              (getInput)
 import Control.Applicative ((<|>))
@@ -48,8 +75,8 @@ processInput = interpreter . parser
 -- | Compute the last send command that precedes a non-zero receive command.
 --
 -- >>> :{
--- part1 (processInput "set a 1 add a 2 mul a a mod a 5 snd a set a 0\
---                     \ rcv a jgz a -1 set a 1 jgz a -2")
+-- part1 (processInput "set a 1\nadd a 2\nmul a a\nmod a 5\nsnd a\nset a 0\n\
+--                     \rcv a\njgz a -1\nset a 1\njgz a -2\n")
 -- :}
 -- Just 4
 part1 ::
@@ -67,17 +94,17 @@ part1 start = go Nothing (start 0)
 -- | Run two programs concurrently and count how many sends the second program
 -- executes once both programs are blocked.
 --
--- >>> part2 (processInput "snd 1 snd 2 snd p rcv a rcv b rcv c rcv d")
+-- >>> part2 (processInput "snd 1\nsnd 2\nsnd p\nrcv a\nrcv b\nrcv c\nrcv d\n")
 -- 3
 part2 ::
   (Integer -> Effect) {- ^ program ID to effect -} ->
   Int                 {- ^ sends from program 1 -}
-part2 start = go 0 (start 0) (start 1)
+part2 start = go (start 0) (start 1) 0
   where
-    go :: Int -> Effect -> Effect -> Int
-    go ctr (Send o p0) p1 = go ctr     p0 (feed o p1)
-    go ctr p0 (Send o p1) = go (ctr+1) (feed o p0) p1
-    go ctr _ _            = ctr
+    go :: Effect -> Effect -> Int -> Int
+    go (Send o p0) p1 ctr = go p0 (feed o p1) ctr
+    go p0 (Send o p1) ctr = go (feed o p0) p1 (ctr+1)
+    go _ _            ctr = ctr
 
 
 -- | Provide the given 'Integer' argument to the first 'Receive' command in a
@@ -88,6 +115,12 @@ feed i (Receive _ k)    = k i
 feed _ Halt             = Halt
 
 ------------------------------------------------------------------------
+
+-- $interp
+-- The Interpreter transforms a program from the world of instructions,
+-- registers, and program counters into only the effects of interpreting
+-- those programs. We'll be able to process these effects in order to answer
+-- the questions posed in part 1 and part 2 of this task.
 
 -- | Observable program execution effects
 data Effect
@@ -118,21 +151,18 @@ interpreter cmds = go 0 . Map.singleton (Register 'p')
         Just (Set x y) -> go (pc+1) (upd (\_ -> regs!y) x regs)
         Just (Add x y) -> go (pc+1) (upd (+     regs!y) x regs)
         Just (Mul x y) -> go (pc+1) (upd (*     regs!y) x regs)
-        Just (Mod x y) -> go (pc+1) (upd (`mod` regs!y) x regs)
+        Just (Mod x y) -> go (pc+1) (upd (`rem` regs!y) x regs)
         Just (Jgz x y) -> go (pc+o) regs
           where o | regs!x > 0 = fromIntegral (regs!y)
                   | otherwise  = 1
 
 -- | Evaluate an expression given the current registers.
-(!) ::
-  Map Register Integer {- ^ registers  -} ->
-  Expression           {- ^ expression -} ->
-  Integer              {- ^ value      -}
-_ ! IntegerExpression  i = i
+(!) :: Map Register Integer -> Expression -> Integer
 m ! RegisterExpression r = Map.findWithDefault 0 r m
+_ ! IntegerExpression  i = i
 
 
--- | Update the value stored in a map and treat missing keys as @0@.
+-- | Update the value stored in a particular register.
 upd ::
   (Integer -> Integer) {- ^ update function   -} ->
   Register             {- ^ register name     -} ->
@@ -141,6 +171,14 @@ upd ::
 upd f = Map.alter ((Just $!) . f . fromMaybe 0)
 
 ------------------------------------------------------------------------
+
+-- $parser
+-- The language defined by this problem is particularly simple, and so is
+-- its parser. Each instruction can be found on its own line, and tokens
+-- in the language are separated by whitespace. Each instruction has one
+-- or two operands. Some of these operands need to be register names while
+-- others can be an expression composed of either an integer literal or
+-- a register name.
 
 -- | Register names: single letters
 newtype Register = Register Char
@@ -155,27 +193,27 @@ data Expression
 
 -- | Program instruction
 data Instruction
-  = Snd Expression            -- ^ v: send value v
-  | Rcv Register              -- ^ r: receive to register r
-  | Set Register Expression   -- ^ r, v: @r = v@
-  | Add Register Expression   -- ^ r, v: @r = r + v@
-  | Mul Register Expression   -- ^ r, v: @r = r * v@
-  | Mod Register Expression   -- ^ r, v: @r = r % v@
-  | Jgz Expression Expression -- ^ t, offset: @if t > 0 then jump by offset@
+  = Snd Expression            -- ^ @snd e@: send @e@
+  | Rcv Register              -- ^ @rcv r@: receive to @r@
+  | Set Register Expression   -- ^ @set r e@: @r=e@
+  | Add Register Expression   -- ^ @add r e@: @r=r+e@
+  | Mul Register Expression   -- ^ @mul r e@: @r=r*e@
+  | Mod Register Expression   -- ^ @mod r e@: @r=r%e@
+  | Jgz Expression Expression -- ^ @jgz t o@: @if t>0 then pc+=o@
   deriving (Read, Show)
 
 
 -- | Parse a text file into a vector of instructions.
 parser :: String {- ^ text file -} -> V.Vector Instruction
-parser input = V.fromList (zipWith parse1 [1..] (lines input))
+parser input = V.fromList (zipWith parseLine [1..] (lines input))
 
-parse1 :: Int {- ^ line number -} -> String {- ^ line -} -> Instruction
-parse1 i line =
+parseLine :: Int {- ^ line number -} -> String {- ^ line -} -> Instruction
+parseLine i line =
   case parseInstruction (words line) of
     Nothing -> error ("Failed to parse line " ++ show i ++ ": " ++ line)
     Just instruction -> instruction
 
-parseInstruction :: [String] -> Maybe Instruction
+parseInstruction :: [String] {- ^ words on line -} -> Maybe Instruction
 parseInstruction ["snd", x   ] = Snd <$> parseExpression x
 parseInstruction ["rcv", x   ] = Rcv <$> parseRegister   x
 parseInstruction ["set", x, y] = Set <$> parseRegister   x <*> parseExpression y
@@ -185,10 +223,10 @@ parseInstruction ["mod", x, y] = Mod <$> parseRegister   x <*> parseExpression y
 parseInstruction ["jgz", x, y] = Jgz <$> parseExpression x <*> parseExpression y
 parseInstruction _             = Nothing
 
-parseExpression :: String -> Maybe Expression
+parseExpression :: String {- ^ word -} -> Maybe Expression
 parseExpression t = RegisterExpression <$> parseRegister t
                 <|> IntegerExpression  <$> readMaybe     t
 
-parseRegister :: String -> Maybe Register
+parseRegister :: String {- ^ word -} -> Maybe Register
 parseRegister [x] | 'a' <= x, x <= 'z' = Just (Register x)
 parseRegister _                        = Nothing
