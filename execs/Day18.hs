@@ -1,3 +1,4 @@
+{-# Language OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 18 solution
@@ -44,18 +45,16 @@ module Main
   , Instruction(..)
   , Expression(..)
   , Register(..)
-  , parser
-  , parseLine
-  , parseInstruction
-  , parseRegister
-  , parseExpression
+  , instruction
+  , register
+  , expression
   ) where
 
-import Advent              (getInput)
-import Control.Applicative ((<|>))
-import Data.Map            (Map)
-import Data.Maybe          (fromMaybe)
-import Text.Read           (readMaybe)
+import Advent               (Parser, getParsedLines, number)
+import Control.Applicative  ((<|>))
+import Data.Map             (Map)
+import Data.Maybe           (fromMaybe)
+import Text.Megaparsec.Char (letterChar)
 import qualified Data.Map as Map
 import qualified Data.Vector as V
 
@@ -64,13 +63,10 @@ import qualified Data.Vector as V
 -- overridden via command-line argument.
 main :: IO ()
 main =
-  do start <- processInput <$> getInput 18
+  do pgm <- getParsedLines 18 instruction
+     let start = interpreter (V.fromList pgm)
      print (part1 start)
      print (part2 start)
-
--- | Transform an input file into a function from program ID to program effect.
-processInput :: String -> Integer -> Effect
-processInput = interpreter . parser
 
 -- | Compute the last send command that precedes a non-zero receive command.
 --
@@ -190,7 +186,6 @@ data Expression
   | IntegerExpression  Integer  -- ^ constant integer
   deriving (Read, Show)
 
-
 -- | Program instruction
 data Instruction
   = Snd Expression            -- ^ @snd e@: send @e@
@@ -202,31 +197,20 @@ data Instruction
   | Jgz Expression Expression -- ^ @jgz t o@: @if t>0 then pc+=o@
   deriving (Read, Show)
 
+instruction :: Parser Instruction
+instruction =
+  Snd <$ "snd " <*> expression                       <|>
+  Rcv <$ "rcv " <*> register                         <|>
+  Set <$ "set " <*> register   <* " " <*> expression <|>
+  Add <$ "add " <*> register   <* " " <*> expression <|>
+  Mul <$ "mul " <*> register   <* " " <*> expression <|>
+  Mod <$ "mod " <*> register   <* " " <*> expression <|>
+  Jgz <$ "jgz " <*> expression <* " " <*> expression
 
--- | Parse a text file into a vector of instructions.
-parser :: String {- ^ text file -} -> V.Vector Instruction
-parser input = V.fromList (zipWith parseLine [1..] (lines input))
+expression :: Parser Expression
+expression =
+  RegisterExpression <$> register <|>
+  IntegerExpression  <$> number
 
-parseLine :: Int {- ^ line number -} -> String {- ^ line -} -> Instruction
-parseLine i line =
-  case parseInstruction (words line) of
-    Nothing -> error ("Failed to parse line " ++ show i ++ ": " ++ line)
-    Just instruction -> instruction
-
-parseInstruction :: [String] {- ^ words on line -} -> Maybe Instruction
-parseInstruction ["snd", x   ] = Snd <$> parseExpression x
-parseInstruction ["rcv", x   ] = Rcv <$> parseRegister   x
-parseInstruction ["set", x, y] = Set <$> parseRegister   x <*> parseExpression y
-parseInstruction ["add", x, y] = Add <$> parseRegister   x <*> parseExpression y
-parseInstruction ["mul", x, y] = Mul <$> parseRegister   x <*> parseExpression y
-parseInstruction ["mod", x, y] = Mod <$> parseRegister   x <*> parseExpression y
-parseInstruction ["jgz", x, y] = Jgz <$> parseExpression x <*> parseExpression y
-parseInstruction _             = Nothing
-
-parseExpression :: String {- ^ word -} -> Maybe Expression
-parseExpression t = RegisterExpression <$> parseRegister t
-                <|> IntegerExpression  <$> readMaybe     t
-
-parseRegister :: String {- ^ word -} -> Maybe Register
-parseRegister [x] | 'a' <= x, x <= 'z' = Just (Register x)
-parseRegister _                        = Nothing
+register :: Parser Register
+register = Register <$> letterChar

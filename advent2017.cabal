@@ -1,7 +1,7 @@
+cabal-version:       2.4
 name:                advent2017
 version:             0.1.0.0
 synopsis:            Advent of Code 2017 solutions
--- description:         
 homepage:            https://github.com/glguy/advent2017
 license:             ISC
 license-file:        LICENSE
@@ -10,7 +10,6 @@ maintainer:          emertens@galois.com
 copyright:           2017 Eric Mertens
 build-type:          Simple
 extra-source-files:  ChangeLog.md
-cabal-version:       >=1.10
 
 library
   exposed-modules:     Advent,
@@ -18,9 +17,9 @@ library
                        Advent.Group,
                        Advent.Fix,
                        Advent.Permutation
-  build-depends:       base       >=4.10 && <4.14,
+  build-depends:       base       ^>=4.14,
                        containers >=0.5  && <0.7,
-                       megaparsec >=7.0  && <8.1,
+                       megaparsec ^>=9.0,
                        vector     >=0.12 && <0.13
   hs-source-dirs:      common
   default-language:    Haskell2010
@@ -130,14 +129,14 @@ executable Day16
 
 executable Day17
   main-is:             Day17.hs
-  ghc-options:         -O2 -fllvm
+  ghc-options:         -O2
   build-depends:       advent2017, base, containers
   hs-source-dirs:      execs
   default-language:    Haskell2010
 
 executable Day18
   main-is:             Day18.hs
-  build-depends:       advent2017, base, containers, vector
+  build-depends:       advent2017, base, containers, vector, megaparsec
   hs-source-dirs:      execs
   default-language:    Haskell2010
 
