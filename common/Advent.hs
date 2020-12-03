@@ -2,7 +2,7 @@ module Advent where
 
 import System.Environment
 import Text.Printf
-import Text.Megaparsec (many, parse, parseErrorTextPretty, Parsec, eof)
+import Text.Megaparsec (many, parse, parseErrorTextPretty, Parsec, eof, setInput, anySingle)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Char.Lexer (decimal, signed)
 import Text.Megaparsec.Error (errorBundlePretty)
@@ -26,17 +26,43 @@ getInput i =
        "-":_ -> getContents
        fn:_  -> readFile fn
 
+inputFileName :: Int -> FilePath
+inputFileName = printf "inputs/input%02d.txt"
+
+getInputLines :: Int -> IO [String]
+getInputLines i = lines <$> getInput i
+
 type Parser = Parsec Void String
 
 getParsedInput :: Int -> Parser a -> IO a
 getParsedInput i p =
   do input <- getInput i
-     case parse p "input.txt" input of
+     case parse p "input" input of
        Left e -> fail (errorBundlePretty e)
        Right a -> return a
 
+-- | Run a parser with 'parseLines' on the input file.
 getParsedLines :: Int -> Parser a -> IO [a]
-getParsedLines i p = getParsedInput i (many (p <* newline) <* eof)
+getParsedLines i p =
+  do input <- getInput i
+     either fail return (parseLines p input)
+
+-- | Run a parser on each line of the input file. Each line will be parsed
+-- in isolation. The parser must consume the whole line.
+--
+-- >>> parseLines (Control.Applicative.many anySingle) "12\n34\n"
+-- Right ["12","34"]
+--
+-- >>> parseLines number "12\n34\n"
+-- Right [12,34]
+parseLines :: Parser a -> String -> Either String [a]
+parseLines p input =
+  case parse (traverse parse1 (lines input)) "input" input of
+    Left  e -> Left (errorBundlePretty e)
+    Right a -> Right a
+  where
+    parse1 x = setInput x *> p <* eof <* setInput "\n" <* newline
+
 
 -- | Count the number of elements in a list that satisfy a predicate.
 count :: (a -> Bool) -> [a] -> Int

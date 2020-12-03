@@ -64,15 +64,17 @@ import qualified Data.Vector as V
 main :: IO ()
 main =
   do pgm <- getParsedLines 18 instruction
-     let start = interpreter (V.fromList pgm)
+     let start = interpreter pgm
      print (part1 start)
      print (part2 start)
 
 -- | Compute the last send command that precedes a non-zero receive command.
 --
 -- >>> :{
--- part1 (processInput "set a 1\nadd a 2\nmul a a\nmod a 5\nsnd a\nset a 0\n\
---                     \rcv a\njgz a -1\nset a 1\njgz a -2\n")
+-- let Right pgm = Advent.parseLines instruction
+--                     "set a 1\nadd a 2\nmul a a\nmod a 5\nsnd a\nset a 0\n\
+--                     \rcv a\njgz a -1\nset a 1\njgz a -2\n"
+--   in part1 (interpreter pgm)
 -- :}
 -- Just 4
 part1 ::
@@ -90,7 +92,11 @@ part1 start = go Nothing (start 0)
 -- | Run two programs concurrently and count how many sends the second program
 -- executes once both programs are blocked.
 --
--- >>> part2 (processInput "snd 1\nsnd 2\nsnd p\nrcv a\nrcv b\nrcv c\nrcv d\n")
+-- >>> :{
+-- let Right pgm = Advent.parseLines instruction
+--                      "snd 1\nsnd 2\nsnd p\nrcv a\nrcv b\nrcv c\nrcv d\n"
+--   in part2 (interpreter pgm)
+-- :}
 -- 3
 part2 ::
   (Integer -> Effect) {- ^ program ID to effect -} ->
@@ -129,17 +135,19 @@ data Effect
 -- | Compute the effect of executing a program starting at the first instruction
 -- using the given map as the initial set of registers.
 interpreter ::
-  V.Vector Instruction {- ^ instructions   -} ->
-  Integer              {- ^ program ID     -} ->
-  Effect               {- ^ program effect -}
+  [Instruction] {- ^ instructions   -} ->
+  Integer       {- ^ program ID     -} ->
+  Effect        {- ^ program effect -}
 interpreter cmds = go 0 . Map.singleton (Register 'p')
   where
+    v = V.fromList cmds
+
     go ::
       Int                  {- ^ program counter -} ->
       Map Register Integer {- ^ registers       -} ->
       Effect               {- ^ program effect  -}
     go pc regs =
-      case cmds V.!? pc of
+      case v V.!? pc of
         Nothing        -> Halt
         Just (Snd x  ) -> Send (regs!x) (go (pc+1) regs)
         Just (Rcv x  ) -> Receive (regs!RegisterExpression x)
