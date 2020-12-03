@@ -161,13 +161,13 @@ interpreter cmds pid = go 0 initialRegs
         val (RegisterExpression r) = reg r                  -- evaluate register
         val (IntegerExpression  i) = i                      -- evaluate literal
         reg r   = Map.findWithDefault 0 r regs              -- lookup register
-        set r v = Map.insert r v regs                       -- assign register
+        set r x = Map.insert r x regs                       -- assign register
         upd r f = Map.alter (Just . f . fromMaybe 0) r regs -- update register
 
 ------------------------------------------------------------------------
 
 -- $parser
--- The language defined by this problem is particularly simple, and so is
+-- The language defined by this problem is particularly simple and so is
 -- its parser. Each instruction can be found on its own line, and tokens
 -- in the language are separated by whitespace. Each instruction has one
 -- or two operands. Some of these operands need to be register names while
