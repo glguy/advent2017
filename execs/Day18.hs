@@ -37,8 +37,6 @@ module Main
   -- $interp
   , Effect(..)
   , interpreter
-  , (!)
-  , upd
 
   -- * Parser
   -- $parser
@@ -52,7 +50,7 @@ module Main
 
 import Advent               (Parser, getParsedLines, number)
 import Control.Applicative  ((<|>))
-import Data.Map             (Map)
+import Data.Map.Strict      (Map)
 import Data.Maybe           (fromMaybe)
 import Text.Megaparsec.Char (letterChar)
 import qualified Data.Map as Map
@@ -138,9 +136,10 @@ interpreter ::
   [Instruction] {- ^ instructions   -} ->
   Integer       {- ^ program ID     -} ->
   Effect        {- ^ program effect -}
-interpreter cmds = go 0 . Map.singleton (Register 'p')
+interpreter cmds pid = go 0 initialRegs
   where
     v = V.fromList cmds
+    initialRegs = Map.singleton (Register 'p') pid
 
     go ::
       Int                  {- ^ program counter -} ->
@@ -149,30 +148,21 @@ interpreter cmds = go 0 . Map.singleton (Register 'p')
     go pc regs =
       case v V.!? pc of
         Nothing        -> Halt
-        Just (Snd x  ) -> Send (regs!x) (go (pc+1) regs)
-        Just (Rcv x  ) -> Receive (regs!RegisterExpression x)
-                                  (\i -> go (pc+1) (upd (\_ -> i) x regs))
-        Just (Set x y) -> go (pc+1) (upd (\_ -> regs!y) x regs)
-        Just (Add x y) -> go (pc+1) (upd (+     regs!y) x regs)
-        Just (Mul x y) -> go (pc+1) (upd (*     regs!y) x regs)
-        Just (Mod x y) -> go (pc+1) (upd (`rem` regs!y) x regs)
+        Just (Snd e  ) -> Send    (val e) (go (pc+1) regs)
+        Just (Rcv r  ) -> Receive (reg r) (go (pc+1) . set r)
+        Just (Set r e) -> go (pc+1) (set r (val e))
+        Just (Add r e) -> go (pc+1) (upd r (val e +))
+        Just (Mul r e) -> go (pc+1) (upd r (val e *))
+        Just (Mod r e) -> go (pc+1) (upd r (`rem` val e))
         Just (Jgz x y) -> go (pc+o) regs
-          where o | regs!x > 0 = fromIntegral (regs!y)
-                  | otherwise  = 1
-
--- | Evaluate an expression given the current registers.
-(!) :: Map Register Integer -> Expression -> Integer
-m ! RegisterExpression r = Map.findWithDefault 0 r m
-_ ! IntegerExpression  i = i
-
-
--- | Update the value stored in a particular register.
-upd ::
-  (Integer -> Integer) {- ^ update function   -} ->
-  Register             {- ^ register name     -} ->
-  Map Register Integer {- ^ registers         -} ->
-  Map Register Integer {- ^ updated registers -}
-upd f = Map.alter ((Just $!) . f . fromMaybe 0)
+          where o | val x > 0 = fromIntegral (val y)
+                  | otherwise = 1
+      where
+        val (RegisterExpression r) = reg r                  -- evaluate register
+        val (IntegerExpression  i) = i                      -- evaluate literal
+        reg r   = Map.findWithDefault 0 r regs              -- lookup register
+        set r v = Map.insert r v regs                       -- assign register
+        upd r f = Map.alter (Just . f . fromMaybe 0) r regs -- update register
 
 ------------------------------------------------------------------------
 
